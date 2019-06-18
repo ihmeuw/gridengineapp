@@ -20,3 +20,4 @@ job-states = '''
 #define JWAITING4OSJID                       0x00004000
 #define JERROR 0x00008000
 '''
+restart-file-location = "/ihme/temp/sgeoutput/{user}/restart"

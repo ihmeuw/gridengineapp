@@ -16,6 +16,18 @@ def find_full_path(executable):
 
 
 def run_check(executable, arguments, timeout):
+    """
+    Run a process using a set of rules around when to throw an
+    exception.
+
+    Args:
+        executable (str): Either ``qsub``, ``qstat``, ``qconf``, ``qdel``.
+        arguments (List): List of arguments. Will be stringified before run.
+        timeout (int): Seconds before timeout.
+
+    Returns:
+        str: Standard out as a string.
+    """
     if BLOCK_QCALLS:
         raise RuntimeError(
             f"This unit test needs to be marked to run on cluster")
