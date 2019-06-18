@@ -1,0 +1,20 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+setuptools-scm = "*"
+pytest = "*"
+pytest-mock = "*"
+sphinx = "*"
+sphinx-rtd-theme = "*"
+sphinx-autobuild = "*"
+sphinxcontrib-napoleon = "*"
+toml = "*"
+networkx = "*"
+
+[requires]
+python_version = "3.7"
