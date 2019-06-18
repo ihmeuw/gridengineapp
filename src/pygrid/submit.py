@@ -66,7 +66,7 @@ def qsub_template():
     return {flag: dict() for flag in ["l", "F", "pe", "U", "u"]}
 
 
-def qsub_execute(template, command):
+def qsub(template, command):
     """
     Runs a qsub command with a template.
 

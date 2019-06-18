@@ -2,9 +2,9 @@ from types import SimpleNamespace
 
 import pytest
 
-import pygrid.qstat
-from pygrid.qsub import (
-    template_to_args, qsub_execute
+import pygrid.status
+from pygrid.submit import (
+    template_to_args, qsub
 )
 
 
@@ -33,6 +33,6 @@ def test_qsub_execute_mock(monkeypatch):
             ret.stdout = "qsub"
         return ret
 
-    monkeypatch.setattr(pygrid.qstat, "run", whatsit)
+    monkeypatch.setattr(pygrid.status, "run", whatsit)
     template = dict(q="all.q")
-    assert qsub_execute(template, desired) == "mvid"
+    assert qsub(template, desired) == "mvid"
