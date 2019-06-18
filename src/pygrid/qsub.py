@@ -1,9 +1,8 @@
-from subprocess import run, PIPE, CalledProcessError, TimeoutExpired
-
-from os import linesep
-from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
-from textwrap import indent
 from logging import getLogger
+from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
+
+from pygrid import configuration
+
 LOGGER = getLogger(__name__)
 
 
@@ -85,6 +84,7 @@ def qsub_execute(template, command):
         Does it sometimes have a ".1" at the end? Yes.
         That makes it a string.
     """
+    qsub_timeout = configuration()["qsub-timeout-seconds"]
     try:
         str_command = [str(x) for x in command]
         formatted_args = template_to_args(template)
@@ -94,12 +94,12 @@ def qsub_execute(template, command):
         qsub_out = run(
             [qsub_path, "-terse"] + formatted_args + str_command,
             shell=False, universal_newlines=True, stdout=PIPE, stderr=PIPE,
-            timeout=QSTAT_TIMEOUT, check=True
+            timeout=qsub_timeout, check=True
         )
     except CalledProcessError as cpe:
         LOGGER.info(f"qsub call {cpe.cmd} failed: {cpe.stderr}")
         return None
     except TimeoutExpired:
-        LOGGER.info(f"qsub timed out after {QSTAT_TIMEOUT}s")
+        LOGGER.info(f"qsub timed out after {qsub_timeout}s")
         return None
     return qsub_out.stdout.strip()

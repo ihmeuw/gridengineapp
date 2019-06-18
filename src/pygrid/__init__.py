@@ -5,4 +5,4 @@ import toml
 
 @lru_cache(maxsize=1)
 def configuration():
-    return toml.loads(resource_string("pygrid", "configuraiton.toml").decode())
+    return toml.loads(resource_string("pygrid", "configuration.toml").decode())
