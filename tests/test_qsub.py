@@ -1,4 +1,5 @@
 import re
+from os import linesep
 from pathlib import Path
 from textwrap import dedent, indent
 from types import SimpleNamespace
@@ -159,6 +160,7 @@ sync_options            `y' `n' `r' `l'
 session_id              ID of a UGE session
 number                  positive integer
 """
+"""This help is from qsub -help."""
 
 
 def description_beginning_character(flag_lines):
@@ -177,7 +179,7 @@ def parse_flags(flag_lines):
     description_char = description_beginning_character(flag_lines)
     flags = list()
     for line in flag_lines:
-        flag_search = re.search(r"\[-(\w+)", line)
+        flag_search = re.match(r"\[-(\w+)", line)
         if flag_search:
             flag = flag_search.group(1)
             args = line[flag_search.span()[1]:description_char].strip()
@@ -196,11 +198,11 @@ def parse_data_types(lines):
         description = " ".join(splitted[1:])
         if "..." in description:
             if "=" in description:
-                data_type = dict
+                data_type = "dict"
             else:
-                data_type = list
+                data_type = "list"
         else:
-            data_type = str
+            data_type = "str"
         types[data_name] = dict(
             name=data_name, description=description, data_type=data_type
         )
@@ -227,28 +229,84 @@ def create_class(flags, data):
         introit = """
         class QsubTemplate:
             def __init__(self):
-                self._template = dict()
-        """
+                self._template = dict()"""
         print(dedent(introit), file=klass)
         for flag_entry in flags:
             if flag_entry["args"] == "":
-                code = '''
-                    @property
-                    def {flag}(self):
-                        """
-                        {description}
-                        """
-                        if "{flag}" in self._template:
-                            return True
-                        else:
-                            return False            
-                '''.format(**flag_entry)
-                print(indent(dedent(code), " " * 4), file=klass)
+                flag_no_argument(flag_entry, klass)
+            else:
+                flag_any_argument(flag_entry, data, klass)
+
+
+def flag_no_argument(flag_entry, klass):
+    code = '''
+        @property
+        def {flag}(self):
+            """
+            bool: {description}
+            """
+            if "{flag}" in self._template:
+                return True
+            else:
+                return False
+        
+        @{flag}.setter
+        def {flag}(self, value):
+            if value:
+                self._template["{flag}"] = None
+            else:
+                if "{flag}" in self._template:
+                    del self._template["{flag}"]'''.format(**flag_entry)
+    print(indent(dedent(code), " " * 4), file=klass)
+
+
+HINTS = dict(list="List[str]", dict="Dict[str,str]", str="str")
+
+
+def flag_any_argument(flag_entry, data, klass):
+    args = flag_entry["args"].split()
+    types = list()
+    long = list()
+    for arg in args:
+        if arg in data:
+            description = data[arg]["description"]
+            data_type = data[arg]["data_type"]
+            types.append(data_type)
+            long.append(f"            * {arg} - {description}")
+        else:
+            long.append(f"            * {arg}")
+            types.append("str")
+    if len(types) > 1 and all(t == "str" for t in types):
+        should_use = "list"
+    elif len(types) == 1:
+        should_use = types[0]
+    else:
+        print(f"flag {flag_entry} types {types}")
+        raise RuntimeError(f"Bad types {types} for flag {flag_entry}")
+    flag_entry["use_type"] = should_use
+    flag_entry["hint"] = HINTS[should_use]
+    flag_entry["long"] = linesep.join(long)
+
+    code = '''
+        @property
+        def {flag}(self):
+            """
+            {hint}: {description}
+{long}
+            """
+            return self._template.get("{flag}", {use_type}())
+        
+        @{flag}.setter
+        def {flag}(self, value):
+            assert isinstance(value, {use_type})
+            self._template["{flag}"] = value'''.format(**flag_entry)
+    print(indent(dedent(code), " " * 4), file=klass)
 
 
 def test_pull_args():
     flag_lines, data_lines = initial_parse(QSUB_HELP.splitlines())
     assert description_beginning_character(flag_lines) == 41
     flags = parse_flags(flag_lines)
+    print(flags)
     data = parse_data_types(data_lines)
     create_class(flags, data)
