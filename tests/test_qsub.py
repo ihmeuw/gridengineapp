@@ -294,7 +294,9 @@ def flag_any_argument(flag_entry, data, klass):
             {hint}: {description}
 {long}
             """
-            return self._template.get("{flag}", {use_type}())
+            if "{flag}" not in self._template:
+                self._template["{flag}"] = {use_type}()
+            return self._template["{flag}"]
         
         @{flag}.setter
         def {flag}(self, value):

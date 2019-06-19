@@ -2,8 +2,30 @@ from logging import getLogger
 from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
 
 from pygrid.config import configuration
+from pygrid.qsub_template import QsubTemplate
 
 LOGGER = getLogger(__name__)
+
+
+class FairTemplate(QsubTemplate):
+    def __init__(self):
+        super().__init__()
+
+    @property
+    def runtime(self):
+        return self.l.get("h_rt", None)
+
+    @runtime.setter
+    def runtime(self, value):
+        self.l["h_rt"] = 0  # convert from datetime.
+
+    @property
+    def fthread(self):
+        return self.l.get("fthread", None)
+
+    @property
+    def m_mem_free(self):
+        return self.l.get("m_mem_free", None)
 
 
 def template_to_args(template):
