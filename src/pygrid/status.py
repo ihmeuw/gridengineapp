@@ -6,7 +6,7 @@ from os import linesep
 from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
 from textwrap import indent
 
-from pygrid import configuration
+from pygrid.config import configuration
 
 LOGGER = getLogger(__name__)
 

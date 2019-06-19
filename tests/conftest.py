@@ -1,6 +1,6 @@
 import pytest
 
-import pygrid
+import pygrid.process
 
 
 pygrid.process.BLOCK_QCALLS = True

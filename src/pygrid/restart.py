@@ -1,6 +1,6 @@
 from pathlib import Path
 from os import environ
-from pygrid import configuration
+from pygrid.config import configuration
 from getpass import getuser
 
 
