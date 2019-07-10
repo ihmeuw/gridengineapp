@@ -1,8 +1,7 @@
 from logging import getLogger
-from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
 
-from pygrid.config import configuration
 from pygrid.qsub_template import QsubTemplate
+from .process import run_check
 
 LOGGER = getLogger(__name__)
 
@@ -26,6 +25,12 @@ class FairTemplate(QsubTemplate):
     @property
     def m_mem_free(self):
         return self.l.get("m_mem_free", None)
+
+
+def max_run_time_on_queue(queue_name):
+    qconf_key_value = run_check("qconf", ["-sq", queue_name])
+    return [x.split() for x in qconf_key_value.splitlines()
+            if x.startswith('h_rt')][0][1]
 
 
 def template_to_args(template):
@@ -92,7 +97,7 @@ def qsub(template, command):
     """
     Runs a qsub command with a template.
 
-    We either try to put a super-thoughtful interface on qsub, or we
+    We can either try to put a super-thoughtful interface on qsub, or we
     let the user manage its arguments. This focuses on making it a little
     easier to manage arguments with the template.
 
@@ -106,22 +111,7 @@ def qsub(template, command):
         Does it sometimes have a ".1" at the end? Yes.
         That makes it a string.
     """
-    qsub_timeout = configuration()["qsub-timeout-seconds"]
-    try:
-        str_command = [str(x) for x in command]
-        formatted_args = template_to_args(template)
-        qsub_path = run("which qsub", shell=True, stdout=PIPE,
-                         universal_newlines=True).stdout.strip()
-        LOGGER.debug(f"{qsub_path} {' '.join(formatted_args + str_command)}")
-        qsub_out = run(
-            [qsub_path, "-terse"] + formatted_args + str_command,
-            shell=False, universal_newlines=True, stdout=PIPE, stderr=PIPE,
-            timeout=qsub_timeout, check=True
-        )
-    except CalledProcessError as cpe:
-        LOGGER.info(f"qsub call {cpe.cmd} failed: {cpe.stderr}")
-        return None
-    except TimeoutExpired:
-        LOGGER.info(f"qsub timed out after {qsub_timeout}s")
-        return None
-    return qsub_out.stdout.strip()
+    str_command = [str(x) for x in command]
+    formatted_args = template_to_args(template)
+    args = ["-terse"] + formatted_args + str_command
+    return run_check("qsub", args)
