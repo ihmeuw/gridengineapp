@@ -3,6 +3,8 @@ import sys
 from argparse import ArgumentParser
 from importlib import import_module
 from pathlib import Path
+from tempfile import gettempdir
+from uuid import uuid4
 
 import networkx as nx
 
@@ -38,7 +40,7 @@ def setup_args_for_job(args, job_id):
     Pass input arguments to the jobs, except for those
     that configure grid engine calls.
     """
-    arg_list = [executable_for_job()]
+    arg_list = [str(executable_for_job())]
     all_args = {under.replace("_", "-"): v for (under, v)
                 in args.__dict__.items()}
     all_args.update(job_id.arguments)
@@ -53,13 +55,12 @@ def setup_args_for_job(args, job_id):
         else:
             flag_list = [dash_flag, str(value)]
         arg_list.extend(flag_list)
-    arg_list.extend(job_id)
     return arg_list
 
 
 def executable_for_job():
     main_module = import_module("__main__")
-    if hasattr(main_module, "__main__"):
+    if hasattr(main_module, "__file__"):
         main_path = Path(main_module.__file__).resolve()
     else:
         raise RuntimeError(f"Cannot find the main")
@@ -71,7 +72,16 @@ def executable_for_job():
         enter_environment = f"conda activate {environment_base}"
     run_program = f"python {main_path} $*"
     script = configuration()["shell-file"]
-    return script.format(enter_environment, run_program)
+    replacements = dict(
+        enter_environment=enter_environment,
+        run_program=run_program,
+    )
+    raw_script = script.format(**replacements)
+    # gettempdir gets the Grid Engine temp within /tmp.
+    tmp = Path(gettempdir()) / (str(uuid4()) + ".sh")
+    with tmp.open("w") as script_out:
+        script_out.write(raw_script)
+    return tmp
 
 
 def minutes_to_time(duration_minutes):
@@ -80,19 +90,19 @@ def minutes_to_time(duration_minutes):
     return f"{hours:02}:{minutes:02}:00"
 
 
-def configure_qsub(resources, holds, args):
+def configure_qsub(name, job_id, resources, holds, args):
     template = QsubTemplate()
+    template.N = f"{name}_{job_id}"
     template.l = dict(
         h_rt=minutes_to_time(resources["run_time_minutes"]),
         fthread=str(resources["threads"]),
-        m_mem_free=f"{resources['memory_gigabytes']}"
+        m_mem_free=f"{resources['memory_gigabytes']}G"
     )
     if holds:
         template.hold_jid = [str(h) for h in holds]
     if hasattr(args, "P") and args.P is not None:
         template.P = args.P
-    if hasattr(args, "q") and args.q is not None:
-        template.q = args.q
+    template.q = ["all.q"]
     return template
 
 
@@ -103,7 +113,9 @@ def launch_jobs(app, args):
     for job_id in execution_ordered(job_graph):
         job_args = setup_args_for_job(args, job_id)
         holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
-        template = configure_qsub(app.job(job_id).resources, holds, args)
+        template = configure_qsub(
+            app.name, job_id, app.job(job_id).resources, holds, args
+        )
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id
 
@@ -129,6 +141,7 @@ def execution_parser():
                         help="Increase verbosity of logging")
     parser.add_argument("-q", "--quiet", action="count", default=0,
                         help="Decrease verbosity of logging")
+    parser.add_argument("-P", type=str, help="project name")
     return parser
 
 

@@ -30,6 +30,10 @@ class Application:
         self._max_level = None
         self.base_directory = Path(".")
 
+    @property
+    def name(self):
+        return "location_app"
+
     def add_arguments(self, parser=None):
         if parser is None:
             parser = ArgumentParser()

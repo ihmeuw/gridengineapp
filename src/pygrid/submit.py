@@ -54,6 +54,8 @@ def template_to_args(template):
             args.append(f"-{flag}")
         elif isinstance(value, bool):
             args.extend([f"-{flag}", str(value).upper()])
+        elif isinstance(value, list):
+            args.extend([f"-{flag}", ",".join(str(v) for v in value)])
         elif isinstance(value, dict):
             kv_pairs = list()
             for tag, amount in value.items():
