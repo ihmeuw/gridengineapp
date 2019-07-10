@@ -30,7 +30,4 @@ job-states = '''
 restart-file-location = "/ihme/temp/sgeoutput/{user}/restart"
 queues = ["all.q", "long.q"]
 project = "ihme_general"
-shell-file = """#!/bin/bash
-{enter_environment}
-{run_program}
-"""
+shell-file = "{enter_environment} && {run_program}"
