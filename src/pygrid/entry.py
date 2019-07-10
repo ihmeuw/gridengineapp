@@ -1,5 +1,8 @@
 from argparse import ArgumentParser
 
+import networkx as nx
+from .submit import qsub, qsub_template
+
 
 def execution_ordered(graph):
     """
@@ -41,14 +44,6 @@ def setup_args_for_job(args, job_id):
     return arg_list
 
 
-def qsub_template(resources, holds):
-    return resources.update({"h": holds})
-
-
-def qsub(template, args):
-    return "grid_job_id"
-
-
 def launch_jobs(app, args):
     job_graph = app.job_graph()
 
@@ -62,13 +57,18 @@ def launch_jobs(app, args):
 
 
 def job_subset(app, args):
+    identifiers = app.job_identifiers(args)
     job_graph = app.job_graph()
-    any_id = job_graph.nodes[0].job_identifier
-    
+    sub_graph = nx.subgraph(job_graph, identifiers)
+    return (
+        app.job(identifier) for identifier in execution_ordered(sub_graph)
+    )
+
 
 def run_jobs(app, args):
     for job in job_subset(app, args):
         job.run()
+
 
 def execution_parser():
     parser = ArgumentParser()
@@ -78,10 +78,16 @@ def execution_parser():
 
 def entry(app, args=None):
     """
+    This starts the application. Use it with::
+
+        if __name__ == "__main__":
+            application = MyApplication()
+            entry(application)
 
     Args:
         app (application.Application): The main application to run.
         args (Namespace|SimpleNamespace): Arguments to the command line.
+            This is usually None and is used for testing.
     """
     parser = execution_parser()
     app.add_arguments(parser)

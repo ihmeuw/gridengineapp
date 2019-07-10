@@ -1,12 +1,27 @@
 class Job:
-    def __init__(self, identifier):
-        self.inputs = list()
-        self.outputs = list()
-        self._identifier = identifier
+    def __init__(self):
+        self._inputs = list()
+        self._outputs = list()
 
     @property
     def identifier(self):
-        return self._identifier
+        raise NotImplementedError()
+
+    @property
+    def resources(self):
+        return dict(
+            memory_gigabytes=1,
+            threads=1,
+            run_time_minutes=1,
+        )
+
+    @property
+    def inputs(self):
+        return self._inputs
+
+    @property
+    def outputs(self):
+        return self._outputs
 
     def run(self):
         pass
