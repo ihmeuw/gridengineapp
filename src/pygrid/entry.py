@@ -1,7 +1,16 @@
+import logging
+import sys
 from argparse import ArgumentParser
+from importlib import import_module
+from pathlib import Path
 
 import networkx as nx
-from .submit import qsub, qsub_template
+
+from .config import configuration
+from .qsub_template import QsubTemplate
+from .submit import qsub
+
+LOGGER = logging.getLogger(__name__)
 
 
 def execution_ordered(graph):
@@ -12,7 +21,7 @@ def execution_ordered(graph):
     depth-first, but depth-first, given that all predecessors must
     be complete before a node executes.
     """
-    possible = [n for n in graph if not graph.predecessors(n)]
+    possible = [n for n in graph if not list(graph.predecessors(n))]
     seen = set()
     while possible:
         node = possible.pop()
@@ -25,7 +34,11 @@ def execution_ordered(graph):
 
 
 def setup_args_for_job(args, job_id):
-    arg_list = list()
+    """
+    Pass input arguments to the jobs, except for those
+    that configure grid engine calls.
+    """
+    arg_list = [executable_for_job()]
     all_args = {under.replace("_", "-"): v for (under, v)
                 in args.__dict__.items()}
     all_args.update(job_id.arguments)
@@ -44,6 +57,45 @@ def setup_args_for_job(args, job_id):
     return arg_list
 
 
+def executable_for_job():
+    main_module = import_module("__main__")
+    if hasattr(main_module, "__main__"):
+        main_path = Path(main_module.__file__).resolve()
+    else:
+        raise RuntimeError(f"Cannot find the main")
+    environment_base = Path(sys.exec_prefix)
+    activate = environment_base / "bin" / "activate"
+    if activate.exists():
+        enter_environment = f"source {activate}"
+    else:
+        enter_environment = f"conda activate {environment_base}"
+    run_program = f"python {main_path} $*"
+    script = configuration()["shell-file"]
+    return script.format(enter_environment, run_program)
+
+
+def minutes_to_time(duration_minutes):
+    hours = duration_minutes // 60
+    minutes = duration_minutes - hours * 60
+    return f"{hours:02}:{minutes:02}:00"
+
+
+def configure_qsub(resources, holds, args):
+    template = QsubTemplate()
+    template.l = dict(
+        h_rt=minutes_to_time(resources["run_time_minutes"]),
+        fthread=str(resources["threads"]),
+        m_mem_free=f"{resources['memory_gigabytes']}"
+    )
+    if holds:
+        template.hold_jid = [str(h) for h in holds]
+    if hasattr(args, "P") and args.P is not None:
+        template.P = args.P
+    if hasattr(args, "q") and args.q is not None:
+        template.q = args.q
+    return template
+
+
 def launch_jobs(app, args):
     job_graph = app.job_graph()
 
@@ -51,7 +103,7 @@ def launch_jobs(app, args):
     for job_id in execution_ordered(job_graph):
         job_args = setup_args_for_job(args, job_id)
         holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
-        template = qsub_template(app.job(job_id).resources, holds)
+        template = configure_qsub(app.job(job_id).resources, holds, args)
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id
 
@@ -73,6 +125,10 @@ def run_jobs(app, args):
 def execution_parser():
     parser = ArgumentParser()
     parser.add_argument("--grid-engine", action="store_true")
+    parser.add_argument("-v", "--verbose", action="count", default=0,
+                        help="Increase verbosity of logging")
+    parser.add_argument("-q", "--quiet", action="count", default=0,
+                        help="Decrease verbosity of logging")
     return parser
 
 
@@ -92,6 +148,7 @@ def entry(app, args=None):
     parser = execution_parser()
     app.add_arguments(parser)
     args = parser.parse_args(args)
+    logging.basicConfig(level=logging.INFO + 10 * (args.quiet - args.verbose))
     if args.grid_engine:
         launch_jobs(app, args)
     else:

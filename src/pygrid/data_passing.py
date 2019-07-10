@@ -11,34 +11,32 @@ class FileEntity:
     Args:
         relative_path (Path|str): Path to the file, relative to a root.
     """
-    def __init__(self, relative_path):
+    def __init__(self, file_path):
         # If location_id isn't specified, it's the same location as the reader.
-        self.relative_path = Path(relative_path)
+        self._file_path = Path(file_path)
 
-    def path(self, execution_context):
+    @property
+    def path(self):
         """Return a full file path to the file, given the current context."""
-        full_path = execution_context.base_directory / self.relative_path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        return full_path
+        self._file_path.parent.mkdir(parents=True, exist_ok=True)
+        return self._file_path
 
-    def validate(self, execution_context):
+    def validate(self):
         """Validate by checking file exists.
 
         Returns:
             None, on success, or a string on error.
         """
-        path = self.path(execution_context)
-        if not path.exists():
-            return f"File {path} not found"
+        if not self.path.exists():
+            return f"File {self.path} not found"
 
-    def mock(self, execution_context):
+    def mock(self):
         """Touch the file into existence."""
-        self.path(execution_context).open("w").close()
+        self.path.open("w").close()
 
-    def remove(self, execution_context):
+    def remove(self):
         """Delete, unlink, remove the file. No error if it doesn't exist."""
-        path = self.path(execution_context)
         try:
-            path.unlink()
+            self.path.unlink()
         except FileNotFoundError:
             pass  # OK if it didn't exist

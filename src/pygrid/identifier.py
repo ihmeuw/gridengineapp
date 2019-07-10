@@ -7,6 +7,13 @@ class IntegerIdentifier:
         """
         self._id = identifier
 
+    def __int__(self):
+        return self._id
+
+    @staticmethod
+    def add_arguments(parser):
+        parser.add_argument("--job-id", type=int)
+
     @property
     def arguments(self):
         return ["--job-id", str(self._id)]

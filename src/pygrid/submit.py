@@ -112,6 +112,8 @@ def qsub(template, command):
         That makes it a string.
     """
     str_command = [str(x) for x in command]
+    if isinstance(template, QsubTemplate):
+        template = template._template
     formatted_args = template_to_args(template)
     args = ["-terse"] + formatted_args + str_command
     return run_check("qsub", args)
