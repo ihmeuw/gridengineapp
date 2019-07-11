@@ -1,3 +1,4 @@
+from functools import lru_cache
 from logging import getLogger
 
 from pygrid.qsub_template import QsubTemplate
@@ -27,10 +28,22 @@ class FairTemplate(QsubTemplate):
         return self.l.get("m_mem_free", None)
 
 
-def max_run_time_on_queue(queue_name):
-    qconf_key_value = run_check("qconf", ["-sq", queue_name])
-    return [x.split() for x in qconf_key_value.splitlines()
-            if x.startswith('h_rt')][0][1]
+@lru_cache(maxsize=10)
+def max_run_minutes_on_queue(queue_name):
+    try:
+        qconf_key_value = run_check("qconf", ["-sq", queue_name])
+    except RuntimeError:
+        LOGGER.error(f"The queue {queue_name} has no run time.")
+        return 0
+    queue_times = [
+        x.split() for x in qconf_key_value.splitlines()
+        if x.startswith('h_rt')
+    ]
+    if len(queue_times) < 1:
+        return 0
+    queue_string = queue_times[0][1]
+    hours, minutes, seconds = [int(x) for x in queue_string.split(":")]
+    return hours * 60 + minutes
 
 
 def template_to_args(template):
@@ -54,6 +67,8 @@ def template_to_args(template):
             args.append(f"-{flag}")
         elif isinstance(value, bool):
             args.extend([f"-{flag}", str(value).upper()])
+        elif isinstance(value, list):
+            args.extend([f"-{flag}", ",".join(str(v) for v in value)])
         elif isinstance(value, dict):
             kv_pairs = list()
             for tag, amount in value.items():
@@ -112,6 +127,8 @@ def qsub(template, command):
         That makes it a string.
     """
     str_command = [str(x) for x in command]
+    if isinstance(template, QsubTemplate):
+        template = template._template
     formatted_args = template_to_args(template)
     args = ["-terse"] + formatted_args + str_command
     return run_check("qsub", args)

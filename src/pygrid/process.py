@@ -38,6 +38,14 @@ class OKReturnCodes(Enum):
     transaction_rejected_try_again = 25
 
 
+STRINGS_THAT_MEAN_ERROR = [
+    "invalid",
+    "rejected",
+    "required",
+    "unknown command from JSV"
+]
+
+
 def actually_failed(called_process_error):
     """Look at stderr of a qsub job to decide whether it's a real failure.
     Be conservative about quitting b/c this is used in a server process
@@ -49,7 +57,8 @@ def actually_failed(called_process_error):
         if return_code == ok_code.value:
             LOGGER.info(f"Return code was {ok_code} so try again.")
             return
-    for really_done in ["invalid", "rejected"]:
+    actual_errors = configuration()["real-failure-messages"]
+    for really_done in actual_errors:
         if really_done in str(called_process_error.stderr):
             raise RuntimeError(called_process_error.stderr)
 
