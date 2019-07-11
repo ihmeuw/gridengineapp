@@ -1,3 +1,4 @@
+from functools import lru_cache
 from logging import getLogger
 
 from pygrid.qsub_template import QsubTemplate
@@ -27,10 +28,22 @@ class FairTemplate(QsubTemplate):
         return self.l.get("m_mem_free", None)
 
 
-def max_run_time_on_queue(queue_name):
-    qconf_key_value = run_check("qconf", ["-sq", queue_name])
-    return [x.split() for x in qconf_key_value.splitlines()
-            if x.startswith('h_rt')][0][1]
+@lru_cache(maxsize=10)
+def max_run_minutes_on_queue(queue_name):
+    try:
+        qconf_key_value = run_check("qconf", ["-sq", queue_name])
+    except RuntimeError:
+        LOGGER.error(f"The queue {queue_name} has no run time.")
+        return 0
+    queue_times = [
+        x.split() for x in qconf_key_value.splitlines()
+        if x.startswith('h_rt')
+    ]
+    if len(queue_times) < 1:
+        return 0
+    queue_string = queue_times[0][1]
+    hours, minutes, seconds = [int(x) for x in queue_string.split(":")]
+    return hours * 60 + minutes
 
 
 def template_to_args(template):

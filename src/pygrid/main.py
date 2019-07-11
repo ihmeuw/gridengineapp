@@ -2,15 +2,16 @@ import logging
 import sys
 from argparse import ArgumentParser
 from importlib import import_module
+from os import linesep
 from pathlib import Path
 from tempfile import gettempdir
 from uuid import uuid4
-
+from getpass import getuser
 import networkx as nx
 
 from .config import configuration
 from .qsub_template import QsubTemplate
-from .submit import qsub
+from .submit import qsub, max_run_minutes_on_queue
 
 LOGGER = logging.getLogger(__name__)
 
@@ -75,28 +76,73 @@ def executable_for_job():
         raise RuntimeError(f"Cannot find the main")
     environment_base = Path(sys.exec_prefix)
     activate = environment_base / "bin" / "activate"
+    commands = ["#!/bin/bash"]
     if activate.exists():
-        enter_environment = f"source {activate}"
+        commands.append(f"source {activate}")
     else:
-        enter_environment = f"conda activate {environment_base}"
-    run_program = f"python {main_path} $*"
-    script = configuration()["shell-file"]
-    replacements = dict(
-        enter_environment=enter_environment,
-        run_program=run_program,
-    )
-    raw_script = script.format(**replacements)
-    # gettempdir gets the Grid Engine temp within /tmp.
-    tmp = Path(gettempdir()) / (str(uuid4()) + ".sh")
+        conda_sh = environment_base / "etc" / "profile.d" / "conda.sh"
+        if conda_sh.exists():
+            commands.append(f". {conda_sh}")
+        commands.append(f"conda activate {environment_base}")
+    commands.append(f"python {main_path} $*")
+    command_lines = linesep.join(commands)
+
+    shell_dir = Path(configuration()["qsub-shell-file-directory"].format(
+        user=getuser()
+    ))
+    shell_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{hash(command_lines)}.sh"
+    tmp = shell_dir / filename
+    LOGGER.debug(f"Writing {tmp} shell file.")
     with tmp.open("w") as script_out:
-        script_out.write(raw_script)
+        script_out.write(command_lines)
     return tmp
+
+
+def run_job_under_no_profile(args_to_remove, job_id):
+    """
+    This step takes a script and arguments and
+    runs them using a bash command that removes the user's
+    profile and bashrc from the environment. We do this because
+    it makes the work much more likely to run for another user.
+    """
+    script = executable_for_job()
+    args = setup_args_for_job(args_to_remove, job_id)
+    return ["/bin/bash", "--noprofile", "--norc", script] + args
 
 
 def minutes_to_time(duration_minutes):
     hours = duration_minutes // 60
     minutes = duration_minutes - hours * 60
     return f"{hours:02}:{minutes:02}:00"
+
+
+def choose_queue(run_time_minutes):
+    """
+    Pick the queue that has the fewest total minutes
+    that are longer than those requested.
+
+    Args:
+        run_time_minutes (int): minutes required after which
+            the job is killed.
+
+    Returns:
+        str: The name of the queue to use.
+    """
+    queues = configuration()["queues"]
+    acceptable = list()
+    for queue in queues:
+        queue_minutes = max_run_minutes_on_queue(queue)
+        if queue_minutes > run_time_minutes:
+            acceptable.append((queue_minutes, queue))
+    acceptable.sort()
+    if len(acceptable) > 0:
+        return acceptable[0][1]
+    else:
+        raise RuntimeError(
+            f"No queue long enough for {run_time_minutes} "
+            f"among the queues {queues}."
+        )
 
 
 def configure_qsub(name, job_id, resources, holds, args):
@@ -109,18 +155,24 @@ def configure_qsub(name, job_id, resources, holds, args):
     )
     if holds:
         template.hold_jid = [str(h) for h in holds]
-    if hasattr(args, "P") and args.P is not None:
-        template.P = args.P
-    template.q = ["all.q"]
+    if hasattr(args, "project") and args.project is not None:
+        template.P = args.project
+    else:
+        template.P = configuration()["project"]
+    template.q = [choose_queue(resources["run_time_minutes"])]
+    template.b = "y"
     return template
 
 
 def launch_jobs(app, args, args_to_remove):
+    """
+    Launches grid engine jobs for this app.
+    """
     job_graph = app.job_graph()
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
-        job_args = setup_args_for_job(args_to_remove, job_id)
+        job_args = run_job_under_no_profile(args_to_remove, job_id)
         holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
         template = configure_qsub(
             app.name, job_id, app.job(job_id).resources, holds, args
@@ -154,8 +206,6 @@ def execution_parser():
                         help="Decrease verbosity of logging")
     parser.add_argument("--project", type=str, help="project name")
     remove_for_jobs["--project"] =True
-    parser.add_argument("--queue", type=str, help="grid engine queue")
-    remove_for_jobs["--queue"] = True
     return parser, remove_for_jobs
 
 

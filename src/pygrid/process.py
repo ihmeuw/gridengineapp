@@ -41,6 +41,7 @@ class OKReturnCodes(Enum):
 STRINGS_THAT_MEAN_ERROR = [
     "invalid",
     "rejected",
+    "required",
     "unknown command from JSV"
 ]
 
