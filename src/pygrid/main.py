@@ -1,12 +1,12 @@
 import logging
 import sys
 from argparse import ArgumentParser
+from getpass import getuser
+from hashlib import sha224
 from importlib import import_module
 from os import linesep
 from pathlib import Path
-from tempfile import gettempdir
-from uuid import uuid4
-from getpass import getuser
+
 import networkx as nx
 
 from .config import configuration
@@ -85,17 +85,23 @@ def executable_for_job():
             commands.append(f". {conda_sh}")
         commands.append(f"conda activate {environment_base}")
     commands.append(f"python {main_path} $*")
+    commands.append("")
     command_lines = linesep.join(commands)
 
     shell_dir = Path(configuration()["qsub-shell-file-directory"].format(
         user=getuser()
     ))
     shell_dir.mkdir(parents=True, exist_ok=True)
-    filename = f"{hash(command_lines)}.sh"
+    hash = sha224()
+    hash.update(command_lines.encode())
+    filename = f"{hash.hexdigest()}.sh"
     tmp = shell_dir / filename
-    LOGGER.debug(f"Writing {tmp} shell file.")
-    with tmp.open("w") as script_out:
-        script_out.write(command_lines)
+    if not tmp.exists():
+        LOGGER.debug(f"Writing {tmp} shell file.")
+        with tmp.open("w") as script_out:
+            script_out.write(command_lines)
+    else:
+        LOGGER.debug(f"Using existing shell file {tmp}.")
     return tmp
 
 
@@ -226,6 +232,7 @@ def entry(app, args=None):
     app.add_arguments(parser)
     args = parser.parse_args(args)
     logging.basicConfig(level=logging.INFO + 10 * (args.quiet - args.verbose))
+    app.initialize(args)
     if args.grid_engine:
         launch_jobs(app, args, args_to_remove)
     else:
