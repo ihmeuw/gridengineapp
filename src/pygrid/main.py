@@ -174,7 +174,7 @@ def launch_jobs(app, args, args_to_remove):
     """
     Launches grid engine jobs for this app.
     """
-    job_graph = app.job_graph()
+    job_graph = job_subset(app, args)
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
@@ -187,22 +187,54 @@ def launch_jobs(app, args, args_to_remove):
         grid_id[job_id] = grid_job_id
 
 
+def jobs_not_done(job_graph, job_done):
+    graph = job_graph.copy()  # Copy so we can add "done" attribute.
+    check_next = list(nx.topological_sort(graph))
+    remaining_graph = graph.copy()
+    while len(remaining_graph) > 0:
+        check = check_next.pop()
+        if check not in remaining_graph:
+            continue
+        complete = job_done(check)
+        graph.node[check]["done"] = complete
+        to_remove = [check]
+        if not complete:
+            for subsequent in nx.descendants(graph, check):
+                graph.node[subsequent]["done"] = False
+                to_remove.append(subsequent)
+        # If a node is done, an un-done node above it can make
+        # it incorrect, so don't mark predecessors as known to be done.
+        remaining_graph.remove_nodes_from(to_remove)
+    keep = [not_done for not_done in graph
+            if not graph.node[not_done]["done"]]
+    LOGGER.debug(f"Doing jobs {keep}")
+    return nx.subgraph(job_graph, keep)
+
+
 def job_subset(app, args):
     identifiers = app.job_identifiers(args)
     job_graph = app.job_graph()
     sub_graph = nx.subgraph(job_graph, identifiers)
-    return (
-        app.job(identifier) for identifier in execution_ordered(sub_graph)
-    )
+    if getattr(args, "continue"):
+
+        def job_done(job_id):
+            return app.job(job_id).done()
+
+        sub_graph = jobs_not_done(sub_graph, job_done)
+    return sub_graph
 
 
 def run_jobs(app, args):
-    for job in job_subset(app, args):
-        job.run()
+    job_graph = job_subset(app, args)
+    for identifier in execution_ordered(job_graph):
+        app.job(identifier).run()
 
 
 def execution_parser():
     parser = ArgumentParser()
+    # The keys are flags to remove when calling jobs as processes
+    # (outside grid engine), and the values are whether that flag
+    # has an argument.
     remove_for_jobs = dict()
     parser.add_argument("--grid-engine", action="store_true")
     remove_for_jobs["--grid-engine"] = False
@@ -212,6 +244,8 @@ def execution_parser():
                         help="Decrease verbosity of logging")
     parser.add_argument("--project", type=str, help="project name")
     remove_for_jobs["--project"] =True
+    parser.add_argument("--continue", action="store_true")
+    remove_for_jobs["--continue"] = False
     return parser, remove_for_jobs
 
 

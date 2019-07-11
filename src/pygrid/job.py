@@ -32,3 +32,7 @@ class Job:
 
         for output in self.outputs:
             output.mock()
+
+    def done(self):
+        errors = [output.validate() for output in self.outputs]
+        return any(err is not None for err in errors)
