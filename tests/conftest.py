@@ -11,6 +11,7 @@ def pytest_addoption(parser):
     group.addoption("--fair", action="store_true",
                     help="run functions requiring access to fair cluster")
 
+
 @pytest.fixture
 def fair(request):
     return FairDbFuncArg(request)
@@ -22,6 +23,7 @@ class FairDbFuncArg:
     """
     def __init__(self, request):
         if not request.config.getoption("fair"):
-            pytest.skip(f"specify --fair to run tests requiring fair cluster")
+            pytest.skip(
+                f"specify --fair to run tests requiring fair cluster")
 
         pygrid.process.BLOCK_QCALLS = False
