@@ -16,7 +16,7 @@ class IntegerIdentifier:
 
     @property
     def arguments(self):
-        return {"job-id": str(self._id)}
+        return ["--job-id", str(self._id)]
 
     def __eq__(self, other):
         if not isinstance(other, IntegerIdentifier):
@@ -44,7 +44,7 @@ class StringIdentifier:
 
     @property
     def arguments(self):
-        return {"job-id": self._id}
+        return ["--job-id", self._id]
 
     def __eq__(self, other):
         if not isinstance(other, StringIdentifier):

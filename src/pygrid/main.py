@@ -17,7 +17,7 @@ LOGGER = logging.getLogger(__name__)
 
 def execution_ordered(graph):
     """
-    This orders the nodes
+    This iterator orders the nodes
     such that they go depth-first. This is chosen so that the data
     has the most locality during computation. It's not strictly
     depth-first, but depth-first, given that all predecessors must
@@ -35,27 +35,36 @@ def execution_ordered(graph):
                 possible.append(successor)
 
 
-def setup_args_for_job(args, job_id):
+def setup_args_for_job(args_to_remove, job_id, arg_list=None):
     """
     Pass input arguments to the jobs, except for those
     that configure grid engine calls.
+
+    Args:
+        args_to_remove (Dict[str,bool]): Map from flag, with
+            double-dashes, to whether it has an argument.
+        job_id: An identifier.
+        arg_list (List[str]): This is sys.argv[1:], but it's
+            here only for debugging.
+
+    Returns:
+        List[str]: A new set of arguments to pass to child
+        processes.
     """
-    arg_list = [str(executable_for_job())]
-    all_args = {under.replace("_", "-"): v for (under, v)
-                in args.__dict__.items()}
-    all_args.update(job_id.arguments)
-    for flag, value in all_args.items():
-        if flag in ["grid-engine"]:
-            continue
-        dash_flag = f"--{flag}"
-        if isinstance(value, bool):
-            flag_list = [dash_flag]
-        elif value is None:
-            flag_list = []
-        else:
-            flag_list = [dash_flag, str(value)]
-        arg_list.extend(flag_list)
-    return arg_list
+    if arg_list is None:
+        arg_list = sys.argv[1:]
+    job_args = job_id.arguments
+    job_flags = [job_arg for job_arg in job_args
+                 if job_arg.startswith("--")]
+    args_to_remove.update({id_flag: True for id_flag in job_flags})
+    for dash_flag, has_argument in args_to_remove.items():
+        for arg_idx, check_arg in enumerate(arg_list):
+            if check_arg.startswith(dash_flag):
+                if "=" in check_arg or not has_argument:
+                    arg_list = arg_list[:arg_idx] + arg_list[arg_idx + 1:]
+                else:
+                    arg_list = arg_list[:arg_idx] + arg_list[arg_idx + 2:]
+    return arg_list + job_args
 
 
 def executable_for_job():
@@ -106,12 +115,12 @@ def configure_qsub(name, job_id, resources, holds, args):
     return template
 
 
-def launch_jobs(app, args):
+def launch_jobs(app, args, args_to_remove):
     job_graph = app.job_graph()
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
-        job_args = setup_args_for_job(args, job_id)
+        job_args = setup_args_for_job(args_to_remove, job_id)
         holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
         template = configure_qsub(
             app.name, job_id, app.job(job_id).resources, holds, args
@@ -136,13 +145,18 @@ def run_jobs(app, args):
 
 def execution_parser():
     parser = ArgumentParser()
+    remove_for_jobs = dict()
     parser.add_argument("--grid-engine", action="store_true")
+    remove_for_jobs["--grid-engine"] = False
     parser.add_argument("-v", "--verbose", action="count", default=0,
                         help="Increase verbosity of logging")
     parser.add_argument("-q", "--quiet", action="count", default=0,
                         help="Decrease verbosity of logging")
-    parser.add_argument("-P", type=str, help="project name")
-    return parser
+    parser.add_argument("--project", type=str, help="project name")
+    remove_for_jobs["--project"] =True
+    parser.add_argument("--queue", type=str, help="grid engine queue")
+    remove_for_jobs["--queue"] = True
+    return parser, remove_for_jobs
 
 
 def entry(app, args=None):
@@ -158,11 +172,11 @@ def entry(app, args=None):
         args (Namespace|SimpleNamespace): Arguments to the command line.
             This is usually None and is used for testing.
     """
-    parser = execution_parser()
+    parser, args_to_remove = execution_parser()
     app.add_arguments(parser)
     args = parser.parse_args(args)
     logging.basicConfig(level=logging.INFO + 10 * (args.quiet - args.verbose))
     if args.grid_engine:
-        launch_jobs(app, args)
+        launch_jobs(app, args, args_to_remove)
     else:
         run_jobs(app, args)
