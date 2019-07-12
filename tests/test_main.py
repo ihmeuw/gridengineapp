@@ -1,16 +1,19 @@
-from pygrid.main import setup_args_for_job, jobs_not_done
-from pygrid.identifier import IntegerIdentifier
-import networkx as nx
-import pytest
-
-
+import subprocess
+import sys
 from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
+from secrets import token_hex
+from textwrap import dedent
+from time import sleep, time
 
 import networkx as nx
+import pytest
 
-from pygrid import Job, FileEntity, IntegerIdentifier, entry
+from pygrid import (
+    Job, FileEntity, IntegerIdentifier, entry, qstat_short
+)
+from pygrid.main import setup_args_for_job, jobs_not_done
 
 LOGGER = getLogger(__name__)
 
@@ -75,11 +78,14 @@ class LocationJob(Job):
 class Application:
     def __init__(self):
         self._max_level = None
+        self._name = None
         self.base_directory = Path(".")
 
     @property
     def name(self):
-        return "location_app"
+        if not self._name:
+            self._name = f"location_app_{token_hex(3)}"
+        return self._name
 
     def add_arguments(self, parser=None):
         if parser is None:
@@ -137,10 +143,123 @@ def test_local_continue_jobs(tmp_path):
     data0 = data / "0.hdf"
     assert data0.exists()
     mtime = data0.stat().st_mtime
+    sleep(1)
 
     args = ["--continue", "-v", "--base-directory", str(tmp_path)]
     app = Application()
     entry(app, args)
+
+    # This says we didn't modify the file that was already there.
+    assert data0.stat().st_mtime == mtime
+    assert len(list(data.glob("*.hdf"))) == 13
+
+
+STATECHART = dict(
+    initial=dict(timeout=60, failure=True),
+    engine=dict(timeout=600, failure=False),
+    done=dict(timeout=0, failure=True),
+)
+"""
+Only care about three states, the initial submission,
+whether qstat has said it sees the file,
+and done, whether that's out of qstat or that the
+file exists.
+"""
+
+
+def check_complete(identify_job, check_done):
+    """
+    Submit a job and check that it ran.
+    If the job never shows up in the queue, and
+    it didn't run, that's a failure. If it shows up in
+    the queue and goes over the timeout, we abandon it,
+    because these are tests.
+
+    Args:
+        identify_job (function): True if it's this job.
+        check_done (function): True if job is done.
+
+    Returns:
+        bool: False if the job ran over a timeout.
+    """
+    state = "initial"
+    last = time()
+    dead_to_me = {"deleted", "suspended"}
+    while state != "done" and not check_done():
+        my_jobs = qstat_short()
+        this_job = [j for j in my_jobs if identify_job(j)]
+        if len(this_job) > 0:
+            print(this_job[0])
+            if state == "initial":
+                last = time()
+                state = "engine"
+            for status_job in this_job:
+                assert not (status_job.status & dead_to_me)
+        elif len(this_job) == 0 and state == "engine":
+            last = time()
+            state = "done"
+        else:
+            pass  # no job yet
+        timeout = STATECHART[state]["timeout"]
+        if time() - last > timeout:
+            print(f"timeout for state {state}")
+            assert STATECHART[state]["failure"]
+            return False
+        print(f"state {state}")
+        if state != "done":
+            sleep(15)
+    return True
+
+
+def test_remote_continue_jobs(fair):
+    base = Path().cwd()
+
+    data = base / "data"
+    if data.exists():
+        for contents in data.glob("*.hdf"):
+            contents.unlink()
+
+    args = [
+        "--job-id", "0", "--base-directory", str(base)
+    ]
+    app = Application()
+    entry(app, args)
+    data0 = data / "0.hdf"
+    assert data0.exists()
+    mtime = data0.stat().st_mtime
+    sleep(1)
+
+    args = [
+        "--grid-engine",
+        "--continue", "-q", "--base-directory", str(base)
+    ]
+    script = Path("script.py")
+    with script.open("w") as outscript:
+        outscript.write(dedent("""
+        from test_main import Application
+        from pygrid import entry
+        app = Application()
+        entry(app)
+        print(app.name)
+        """))
+    print(f"Running with args {args}")
+    result = subprocess.run(
+        [sys.executable, script] + args,
+        capture_output=True,
+        universal_newlines=True,
+        shell=False,
+        check=True,
+    )
+    app_name = result.stdout.strip()
+    print(f"looking for {app_name}")
+
+    def identify_job(j):
+        return j.name.startswith(app_name)
+
+    def check_done():
+        return len(list(data.glob("*.hdf"))) == 13
+
+    check_complete(identify_job, check_done)
 
     # This says we didn't modify the file that was already there.
     assert data0.stat().st_mtime == mtime

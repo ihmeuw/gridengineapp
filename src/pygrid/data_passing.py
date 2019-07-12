@@ -27,7 +27,9 @@ class FileEntity:
         Returns:
             None, on success, or a string on error.
         """
-        if not self.path.exists():
+        exists = self.path.exists()
+        LOGGER.debug(f"{self.path} exists {exists}")
+        if not exists:
             return f"File {self.path} not found"
 
     def mock(self):

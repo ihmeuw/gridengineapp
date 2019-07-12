@@ -1,4 +1,5 @@
 import logging
+import re
 import sys
 from argparse import ArgumentParser
 from getpass import getuser
@@ -118,7 +119,7 @@ def run_job_under_no_profile(args_to_remove, job_id):
 
 
 def minutes_to_time(duration_minutes):
-    hours = duration_minutes // 60
+    hours = duration_minutes // 60  # Not limited to 24 hours.
     minutes = duration_minutes - hours * 60
     return f"{hours:02}:{minutes:02}:00"
 
@@ -153,7 +154,9 @@ def choose_queue(run_time_minutes):
 
 def configure_qsub(name, job_id, resources, holds, args):
     template = QsubTemplate()
-    template.N = f"{name}_{job_id}"
+    underscore = re.sub(r"[ ,\-]+", "_", str(job_id))
+    sanitized = "".join(re.findall(r"[\w_]", underscore))
+    template.N = f"{name}_{sanitized}"
     template.l = dict(
         h_rt=minutes_to_time(resources["run_time_minutes"]),
         fthread=str(resources["threads"]),
@@ -190,6 +193,7 @@ def launch_jobs(app, args, args_to_remove):
 def jobs_not_done(job_graph, job_done):
     graph = job_graph.copy()  # Copy so we can add "done" attribute.
     check_next = list(nx.topological_sort(graph))
+    check_next.reverse()
     remaining_graph = graph.copy()
     while len(remaining_graph) > 0:
         check = check_next.pop()

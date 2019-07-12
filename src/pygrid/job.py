@@ -35,4 +35,4 @@ class Job:
 
     def done(self):
         errors = [output.validate() for output in self.outputs]
-        return any(err is not None for err in errors)
+        return all(err is None for err in errors)

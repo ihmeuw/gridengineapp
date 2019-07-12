@@ -295,6 +295,9 @@ class MiteWeightJob:
         """
         return 0
 
+    def __repr__(self):
+        return f"MiteWeightJob({self.job_id}, {self.name})"
+
 
 def qstat_short(effective_user=None):
     """
