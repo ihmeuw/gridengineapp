@@ -11,6 +11,7 @@ Welcome to pygrid's documentation!
    :caption: Contents:
 
    tutorial
+   requirements
 
 
 Indices and tables

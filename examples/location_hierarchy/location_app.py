@@ -71,4 +71,4 @@ class Application:
 
 if __name__ == "__main__":
     app = Application()
-    entry(app)
+    exit(entry(app))
