@@ -8,6 +8,8 @@ setup(
     setup_requires=["setuptools_scm"],
     install_requires=["toml", "networkx"],
     extras_require={
+        # You might put these in tests_require if you are using
+        # setup.py, but pip wants them here.
         "testing": ["pytest", "pytest-mock"],
         "documentation": ["sphinx", "sphinx_rtd_theme", "sphinx-autobuild", "sphinxcontrib-napoleon"],
     },

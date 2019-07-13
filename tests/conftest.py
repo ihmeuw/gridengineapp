@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 
 import pygrid.process
@@ -27,3 +28,18 @@ class FairDbFuncArg:
                 f"specify --fair to run tests requiring fair cluster")
 
         pygrid.process.BLOCK_QCALLS = False
+
+
+@pytest.fixture(scope="session")
+def examples():
+    """
+    Returns rooted paths to examples in the examples directory.
+
+    Returns:
+        Dict[str,str]: Name of example to absolute path of example.
+    """
+    test_dir = Path(__file__).resolve().parent
+    subdirs = (test_dir.parent / "examples").glob("*")
+    dirs = [path for path in subdirs if path.is_dir()]
+    fixtures = {example.name: example for example in dirs}
+    return fixtures

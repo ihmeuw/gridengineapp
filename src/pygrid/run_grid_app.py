@@ -1,57 +1,15 @@
 import logging
 import re
-import sys
-from getpass import getuser
-from hashlib import sha224
-from importlib import import_module
-from os import linesep
-from pathlib import Path
 
 from pygrid import qsub
 from pygrid.argument_handling import setup_args_for_job
 from pygrid.config import configuration
+from pygrid.determine_executable import executable_for_job
 from pygrid.graph_choice import job_subset, execution_ordered
 from pygrid.qsub_template import QsubTemplate
 from pygrid.submit import max_run_minutes_on_queue
 
 LOGGER = logging.getLogger(__name__)
-
-
-def executable_for_job():
-    main_module = import_module("__main__")
-    if hasattr(main_module, "__file__"):
-        main_path = Path(main_module.__file__).resolve()
-    else:
-        raise RuntimeError(f"Cannot find the main")
-    environment_base = Path(sys.exec_prefix)
-    activate = environment_base / "bin" / "activate"
-    commands = ["#!/bin/bash"]
-    if activate.exists():
-        commands.append(f"source {activate}")
-    else:
-        conda_sh = environment_base / "etc" / "profile.d" / "conda.sh"
-        if conda_sh.exists():
-            commands.append(f". {conda_sh}")
-        commands.append(f"conda activate {environment_base}")
-    commands.append(f"python {main_path} $*")
-    commands.append("")
-    command_lines = linesep.join(commands)
-
-    shell_dir = Path(configuration()["qsub-shell-file-directory"].format(
-        user=getuser()
-    ))
-    shell_dir.mkdir(parents=True, exist_ok=True)
-    hash = sha224()
-    hash.update(command_lines.encode())
-    filename = f"{hash.hexdigest()}.sh"
-    tmp = shell_dir / filename
-    if not tmp.exists():
-        LOGGER.debug(f"Writing {tmp} shell file.")
-        with tmp.open("w") as script_out:
-            script_out.write(command_lines)
-    else:
-        LOGGER.debug(f"Using existing shell file {tmp}.")
-    return tmp
 
 
 def run_job_under_no_profile(arg_list, args_to_remove, job_id):

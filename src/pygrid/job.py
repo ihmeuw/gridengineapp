@@ -5,7 +5,10 @@ class Job:
 
     @property
     def identifier(self):
-        raise NotImplementedError()
+        if hasattr(self, "_id"):
+            return self._id
+        else:
+            raise NotImplementedError()
 
     @property
     def resources(self):
