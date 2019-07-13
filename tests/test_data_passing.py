@@ -87,7 +87,7 @@ def test_shelf_no_validate(tmp_path):
 def test_shelf_happy(tmp_path):
     keys = {"hi", "there"}
     path = tmp_path / "my.shelf"
-    shelf = ShelfFile(tmp_path, required_keys=keys)
+    shelf = ShelfFile(path, required_keys=keys)
     assert shelf.validate() is not None
     shelf.mock()
     assert shelf.validate() is None

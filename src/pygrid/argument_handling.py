@@ -105,9 +105,9 @@ def execution_parser():
         "Flags that affect debugging and logging of jobs."
     )
     debug.add_argument("-v", "--verbose", action="count", default=0,
-                        help="Increase verbosity of logging")
+                       help="Increase verbosity of logging")
     debug.add_argument("-q", "--quiet", action="count", default=0,
-                        help="Decrease verbosity of logging")
+                       help="Decrease verbosity of logging")
     debug.add_argument(
         "--pdb", action="store_true",
         help="Invoke interactive debugger on error.",

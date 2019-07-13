@@ -83,7 +83,7 @@ attr_value              (new) value for a sublist element
 attr_name               name of a job attribute
 complex_list            complex[,complex,...]
 context_list            variable[=value][,variable[=value],...]
-ckpt_selector           `n' `s' `m' `x' <interval> 
+ckpt_selector           `n' `s' `m' `x' <interval>
 date_time               [[CC]YY]MMDDhhmm[.SS]
 docker_volumes          list of docker volumes (mount points) following docker run -v syntax
 docker_options          list of docker run options
@@ -211,7 +211,7 @@ def flag_no_argument(flag_entry, klass):
                 return True
             else:
                 return False
-        
+
         @{flag}.setter
         def {flag}(self, value):
             if value:
@@ -259,7 +259,7 @@ def flag_any_argument(flag_entry, data, klass):
             if "{flag}" not in self._template:
                 self._template["{flag}"] = {use_type}()
             return self._template["{flag}"]
-        
+
         @{flag}.setter
         def {flag}(self, value):
             assert isinstance(value, {use_type})

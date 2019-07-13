@@ -12,7 +12,6 @@ import pytest
 
 from pygrid import (
     Job, FileEntity, IntegerIdentifier, entry, qstat_short,
-    NodeMisconfigurationError,
 )
 from pygrid.argument_handling import setup_args_for_job
 from pygrid.graph_choice import jobs_not_done

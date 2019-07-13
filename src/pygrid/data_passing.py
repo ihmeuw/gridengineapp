@@ -62,7 +62,8 @@ class PandasFile(FileEntity):
     def __init__(self, file_path, required_frames=None):
         super().__init__(file_path)
         required_frames = required_frames if required_frames else dict()
-        self._columns = {key: set(cols) for (key, cols) in required_frames.items()}
+        self._columns = {
+            key: set(cols) for (key, cols) in required_frames.items()}
 
     def validate(self):
         """
@@ -78,7 +79,8 @@ class PandasFile(FileEntity):
             try:
                 df = pd.read_hdf(self.path, key=key)
                 if cols != set(df.columns):
-                    errors.append(f"for {key} found {df.columns} expected {cols}.")
+                    errors.append(
+                        f"for {key} found {df.columns} expected {cols}.")
             except KeyError as key:
                 errors.append(f"for {key} found nothing expected {cols}.")
         return " ".join(errors) if errors else None
@@ -103,7 +105,8 @@ class ShelfFile(FileEntity):
 
     Args:
         file_path (Path|str): Path to the file.
-        required_keys (Set[str]): String names of variables to find in the file.
+        required_keys (Set[str]): String names of variables to find in
+            the file.
     """
     def __init__(self, file_path, required_keys=None):
         super().__init__(file_path)
@@ -125,7 +128,8 @@ class ShelfFile(FileEntity):
                 in_file = set(db.keys())
             if self._keys - in_file:
                 LOGGER.debug(f"Shelf keys not found {path}")
-                return f"Shelf keys not found {path} expected {self._keys} found {in_file}"
+                return (f"Shelf keys not found {path} expected "
+                        f"{self._keys} found {in_file}")
 
     def mock(self):
         path = self.path
