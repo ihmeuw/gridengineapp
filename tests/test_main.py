@@ -3,7 +3,6 @@ import sys
 from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
-from secrets import token_hex
 from textwrap import dedent
 from time import sleep, time
 
@@ -85,7 +84,7 @@ class Application:
     @property
     def name(self):
         if not self._name:
-            self._name = f"location_app_{token_hex(3)}"
+            self._name = f"location_app"
         return self._name
 
     def add_arguments(self, parser=None):

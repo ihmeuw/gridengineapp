@@ -100,11 +100,15 @@ def choose_queue(run_time_minutes):
         )
 
 
+def sanitize_id(job_id_string):
+    """Given any job ID, turn it into OK characters for qsub name."""
+    recognized = "".join(re.findall(r"[\w_,\- ]", job_id_string))
+    return re.sub(r"[ ,\-]+", "_", recognized)
+
+
 def configure_qsub(name, job_id, resources, holds, args):
     template = QsubTemplate()
-    underscore = re.sub(r"[ ,\-]+", "_", str(job_id))
-    sanitized = "".join(re.findall(r"[\w_]", underscore))
-    template.N = f"{name}_{sanitized}"
+    template.N = f"{name}_{sanitize_id(str(job_id))}"
     template.l = dict(
         h_rt=minutes_to_time(resources["run_time_minutes"]),
         fthread=str(resources["threads"]),
@@ -128,13 +132,14 @@ def launch_jobs(app, args, arg_list, args_to_remove):
     Launches grid engine jobs for this app.
     """
     job_graph = job_subset(app, args)
+    job_name = app.name + args.run_id
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
         job_args = run_job_under_no_profile(arg_list, args_to_remove, job_id)
         holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
         template = configure_qsub(
-            app.name, job_id, app.job(job_id).resources, holds, args
+            job_name, job_id, app.job(job_id).resources, holds, args
         )
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id

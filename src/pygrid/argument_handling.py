@@ -1,5 +1,6 @@
 import sys
 from argparse import ArgumentParser
+from secrets import token_hex
 from textwrap import fill
 
 
@@ -57,6 +58,14 @@ def execution_parser():
             submission and sets the number of times any one job
             is allowed to rerun.
         """),
+    )
+    grid.add_argument(
+        "--run-id", type=str,
+        default=token_hex(3),
+        help=fill("""
+        This is a string identifier that is added to the application
+        name in order to make it easier to use qstat, qdel, and such.
+        """)
     )
 
     multiprocess = parser.add_argument_group(
