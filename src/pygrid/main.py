@@ -1,10 +1,7 @@
 import faulthandler
 import logging
-import sys
 from bdb import BdbQuit
 from enum import Enum
-from importlib import import_module
-from pathlib import Path
 from types import SimpleNamespace
 
 import networkx as nx
@@ -12,6 +9,7 @@ import networkx as nx
 from pygrid.argument_handling import (
     setup_args_for_job, execution_parser
 )
+from pygrid.determine_executable import subprocess_executable
 from pygrid.graph_choice import job_subset, execution_ordered
 from pygrid.run_grid_app import launch_jobs
 from .exceptions import NodeMisconfigurationError
@@ -53,20 +51,15 @@ def multiprocess_jobs(app, args, arg_list, args_to_remove):
                 if job not in completed_jobs]
         remaining = nx.subgraph(job_graph, keep)
         runnable = [rem for rem in execution_ordered(remaining)
-                    if not list(job_graph.predecessors(rem))]
+                    if not list(remaining.predecessors(rem))]
         job_descriptions = dict()
         for job_id in runnable:
-            main_module = import_module("__main__")
-            if hasattr(main_module, "__file__"):
-                main_path = Path(main_module.__file__).resolve()
-            else:
-                raise RuntimeError(f"Cannot find the main")
-            environment_base = Path(sys.exec_prefix)
+            python_executable, argv0 = subprocess_executable(app)
             args = setup_args_for_job(args_to_remove, job_id, arg_list)
             job = app.job(job_id)
             job_descriptions[job_id] = SimpleNamespace(
-                memory=job.resources["memory"],
-                args=[environment_base, main_path] + args,
+                memory=job.resources["memory_gigabytes"],
+                args=[str(python_executable)] + argv0 + args,
             )
         return job_descriptions
 

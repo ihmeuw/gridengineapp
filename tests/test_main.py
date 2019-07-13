@@ -3,7 +3,6 @@ import sys
 from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
-from secrets import token_hex
 from textwrap import dedent
 from time import sleep, time
 
@@ -11,7 +10,7 @@ import networkx as nx
 import pytest
 
 from pygrid import (
-    Job, FileEntity, IntegerIdentifier, entry, qstat_short,
+    Job, FileEntity, IntegerIdentifier, entry, check_complete,
 )
 from pygrid.argument_handling import setup_args_for_job
 from pygrid.graph_choice import jobs_not_done
@@ -85,7 +84,7 @@ class Application:
     @property
     def name(self):
         if not self._name:
-            self._name = f"location_app_{token_hex(3)}"
+            self._name = f"location_app"
         return self._name
 
     def add_arguments(self, parser=None):
@@ -155,63 +154,6 @@ def test_local_continue_jobs(tmp_path):
     assert len(list(data.glob("*.hdf"))) == 13
 
 
-STATECHART = dict(
-    initial=dict(timeout=60, failure=True),
-    engine=dict(timeout=600, failure=False),
-    done=dict(timeout=0, failure=True),
-)
-"""
-Only care about three states, the initial submission,
-whether qstat has said it sees the file,
-and done, whether that's out of qstat or that the
-file exists.
-"""
-
-
-def check_complete(identify_job, check_done):
-    """
-    Submit a job and check that it ran.
-    If the job never shows up in the queue, and
-    it didn't run, that's a failure. If it shows up in
-    the queue and goes over the timeout, we abandon it,
-    because these are tests.
-
-    Args:
-        identify_job (function): True if it's this job.
-        check_done (function): True if job is done.
-
-    Returns:
-        bool: False if the job ran over a timeout.
-    """
-    state = "initial"
-    last = time()
-    dead_to_me = {"deleted", "suspended"}
-    while state != "done" and not check_done():
-        my_jobs = qstat_short()
-        this_job = [j for j in my_jobs if identify_job(j)]
-        if len(this_job) > 0:
-            print(this_job[0])
-            if state == "initial":
-                last = time()
-                state = "engine"
-            for status_job in this_job:
-                assert not (status_job.status & dead_to_me)
-        elif len(this_job) == 0 and state == "engine":
-            last = time()
-            state = "done"
-        else:
-            pass  # no job yet
-        timeout = STATECHART[state]["timeout"]
-        if time() - last > timeout:
-            print(f"timeout for state {state}")
-            assert STATECHART[state]["failure"]
-            return False
-        print(f"state {state}")
-        if state != "done":
-            sleep(15)
-    return True
-
-
 def test_remote_continue_jobs(fair):
     base = Path().cwd()
 
@@ -260,7 +202,13 @@ def test_remote_continue_jobs(fair):
     def check_done():
         return len(list(data.glob("*.hdf"))) == 13
 
-    check_complete(identify_job, check_done)
+    try:
+        check_complete(identify_job, check_done)
+    except TimeoutError as te:
+        if te.args[1] == "engine":
+            return  # This means the queue was slow.
+        else:
+            raise
 
     # This says we didn't modify the file that was already there.
     assert data0.stat().st_mtime == mtime
