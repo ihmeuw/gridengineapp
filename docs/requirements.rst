@@ -8,11 +8,12 @@ Problem to Solve
 
 Forecasting builds a lot of applications that run on the cluster.
 The main challenge for our cluster is that cluster nodes
-are misconfigured much more often than any cluster I've
-ever seen. When we write code, we get distracted by this
+often fail to run a job that would otherwise run.
+When we write code, we get distracted by this
 circumstance. This package focuses on making code testable
 first, while also dealing with node misconfiguration as
-a secondary problem. Our code has more bugs than the nodes.
+a secondary problem. Our code has more bugs than the nodes do,
+so making work testable is the primary problem to solve.
 
 These applications have to be
 
@@ -75,3 +76,32 @@ Scenario Summaries
    node misconfiguration, such as inability to reach
    a file on a shared filesystem, then it can raise
    an exception that results in rerunning the job.
+
+
+Feature List
+------------
+
+ * F1. Run an application under Grid Engine.
+ * F2. Run an application as a single local process.
+ * F3. Run an application as multiple Unix processes on a local machine.
+ * F4. Continue a application, which means looking at which outputs it hasn't
+   made and starting the jobs that make those outputs.
+ * F5. Rerun a single job within an application, if the application detects
+   a problem with its local node, only for Grid Engine.
+ * F6. Wait synchronously for all jobs within an application to complete.
+ * F7. Configure logging to go to the known logging directory.
+ * F8. Run a single job within an application as a local process
+   under a debugger.
+ * F9. Run all jobs in an application that depend on a particular job.
+ * F10. Test that an application is well-formed before trying to run it.
+ * F11. During asynchronous execution, tell the client the name of
+   the job and the job id of the last job to execute.
+ * F12. Collect metrics on a job as a function of the parameters.
+ * F13. Check common node misconfiguration problems, such as missing
+   filesystem mounts.
+ * F14. Launch jobs without requiring the client to write a
+   Python main function. Write that file for them, so that they can
+   call a job using the class of the application.
+ * F15. Use task arrays to run jobs that have multiplicity.
+ * F16. Allow the developer to configure Grid Engine job templates
+   and logging.

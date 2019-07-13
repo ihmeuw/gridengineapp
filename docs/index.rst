@@ -12,6 +12,7 @@ Welcome to pygrid's documentation!
 
    tutorial
    requirements
+   testing
 
 
 Indices and tables
