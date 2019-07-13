@@ -1,8 +1,10 @@
+from getpass import getuser
 from pathlib import Path
+
 import pytest
 
 import pygrid.process
-
+from pygrid.config import configuration
 
 pygrid.process.BLOCK_QCALLS = True
 
@@ -28,6 +30,15 @@ class FairDbFuncArg:
                 f"specify --fair to run tests requiring fair cluster")
 
         pygrid.process.BLOCK_QCALLS = False
+
+
+@pytest.fixture(scope="session")
+def shared_cluster_tmp(tmp_path_factory):
+    cluster_tmp = configuration()["cluster-tmp"]
+    tmp_path = Path(cluster_tmp.format(user=getuser())) / "tmp"
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    tmp_path_factory._basetemp = tmp_path
+    return tmp_path_factory.mktemp("run")
 
 
 @pytest.fixture(scope="session")

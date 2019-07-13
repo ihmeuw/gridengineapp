@@ -31,3 +31,4 @@ restart-file-location = "/ihme/temp/sgeoutput/{user}/restart"
 queues = ["all.q", "long.q"]
 project = "ihme_general"
 qsub-shell-file-directory = "/ihme/code/{user}/shellfiles"
+cluster-tmp = "/ihme/temp/sgeoutput/{user}"

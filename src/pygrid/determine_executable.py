@@ -80,22 +80,15 @@ def find_or_create_executable(application):
     return argv0
 
 
-def subprocess_executable():
-    main_module = import_module("__main__")
-    if hasattr(main_module, "__file__"):
-        main_path = Path(main_module.__file__).resolve()
-    else:
-        raise RuntimeError(f"Cannot find the main")
+def subprocess_executable(app):
+    argv0 = find_or_create_executable(app)
     environment_base = Path(sys.exec_prefix)
-    return environment_base, main_path
+    return environment_base, argv0
 
 
-def executable_for_job():
-    main_module = import_module("__main__")
-    if hasattr(main_module, "__file__"):
-        main_path = Path(main_module.__file__).resolve()
-    else:
-        raise RuntimeError(f"Cannot find the main")
+def executable_for_job(app):
+    argv0 = find_or_create_executable(app)
+    main_path = " ".join(str(command_arg) for command_arg in argv0)
     environment_base = Path(sys.exec_prefix)
     activate = environment_base / "bin" / "activate"
     commands = ["#!/bin/bash"]

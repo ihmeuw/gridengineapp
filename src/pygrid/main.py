@@ -54,12 +54,12 @@ def multiprocess_jobs(app, args, arg_list, args_to_remove):
                     if not list(job_graph.predecessors(rem))]
         job_descriptions = dict()
         for job_id in runnable:
-            environment_base, main_path = subprocess_executable()
+            environment_base, argv0 = subprocess_executable(app)
             args = setup_args_for_job(args_to_remove, job_id, arg_list)
             job = app.job(job_id)
             job_descriptions[job_id] = SimpleNamespace(
                 memory=job.resources["memory"],
-                args=[environment_base, main_path] + args,
+                args=[environment_base] + argv0 + args,
             )
         return job_descriptions
 

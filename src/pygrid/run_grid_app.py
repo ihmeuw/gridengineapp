@@ -12,14 +12,14 @@ from pygrid.submit import max_run_minutes_on_queue
 LOGGER = logging.getLogger(__name__)
 
 
-def run_job_under_no_profile(arg_list, args_to_remove, job_id):
+def run_job_under_no_profile(app, arg_list, args_to_remove, job_id):
     """
     This step takes a script and arguments and
     runs them using a bash command that removes the user's
     profile and bashrc from the environment. We do this because
     it makes the work much more likely to run for another user.
     """
-    script = executable_for_job()
+    script = executable_for_job(app)
     args = setup_args_for_job(args_to_remove, job_id, arg_list)
     return ["/bin/bash", "--noprofile", "--norc", script] + args
 
@@ -94,7 +94,7 @@ def launch_jobs(app, args, arg_list, args_to_remove):
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
-        job_args = run_job_under_no_profile(arg_list, args_to_remove, job_id)
+        job_args = run_job_under_no_profile(app, arg_list, args_to_remove, job_id)
         holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
         template = configure_qsub(
             job_name, job_id, app.job(job_id).resources, holds, args
