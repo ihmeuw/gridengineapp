@@ -1,5 +1,6 @@
 import faulthandler
 import logging
+import sys
 from bdb import BdbQuit
 from enum import Enum
 from types import SimpleNamespace
@@ -34,6 +35,9 @@ def run_jobs(app, args):
     except Exception:  # Too broad be we re-raise.
         if args.pdb:
             # invokes debugger when an exception happens.
+            if sys.stdout.fileno() != 1:
+                LOGGER.info(f"Not invoking pdb because stdout is captured")
+                raise
             import pdb
             import traceback
 

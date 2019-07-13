@@ -10,11 +10,12 @@ LOGGER = getLogger(__name__)
 
 
 class LocationJob(Job):
-    def __init__(self, location_id, base_directory):
+    def __init__(self, location_id, base_directory, please_fail=False):
         super().__init__()
         self.location_id = location_id
         out_file = base_directory / f"data/{location_id}.hdf"
         self.outputs.append(FileEntity(out_file))
+        self.please_fail = please_fail
 
     @property
     def identifier(self):
@@ -22,6 +23,7 @@ class LocationJob(Job):
 
     def run(self):
         LOGGER.info(f"Running job {self.location_id}")
+        assert not self.please_fail
         self.mock_run()
 
     def done(self):
@@ -33,6 +35,7 @@ class Application:
     def __init__(self):
         self._max_level = None
         self.base_directory = Path(".")
+        self.fail_for = None
 
     @property
     def name(self):
@@ -43,12 +46,23 @@ class Application:
             parser = ArgumentParser()
         parser.add_argument("--max-level", type=int)
         parser.add_argument("--base-directory", type=Path)
+        parser.add_argument(
+            "--fail-for", type=int,
+            help="""
+                Run this command with the arguments::
+                
+                    python location_app.py --job-id 7 --fail-for 7 --pdb
+                    
+                and it will drop into the debugger.
+            """,
+        )
         IntegerIdentifier.add_arguments(parser)
         return parser
 
     def initialize(self, args):
         if args.base_directory is not None:
             self.base_directory = args.base_directory
+        self.fail_for = args.fail_for
 
     def job_graph(self):
         locations = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
@@ -60,7 +74,8 @@ class Application:
         return job_graph
 
     def job(self, identifier):
-        return LocationJob(int(identifier), self.base_directory)
+        please_fail = int(identifier) == self.fail_for
+        return LocationJob(int(identifier), self.base_directory, please_fail)
 
     def job_identifiers(self, args):
         if hasattr(args, "job_id") and isinstance(args.job_id, int):

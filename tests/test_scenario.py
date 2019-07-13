@@ -1,4 +1,6 @@
 import importlib
+import logging
+import sys
 from secrets import token_hex
 
 import pytest
@@ -52,3 +54,16 @@ def test_location_app_scenario_processes_grid(
     check_complete(identify_job, check_done)
 
     assert len(list((shared_cluster_tmp / "data").glob("*.hdf"))) == 13
+
+
+def test_drop_into_pdb(example_module, tmp_path, caplog):
+    """Tests that we reach the correct code path for pdb."""
+    caplog.set_level(logging.INFO)
+    location_module = example_module("location_hierarchy", "location_app")
+    app = location_module.Application()
+    args = ["--base-directory", str(tmp_path),
+            "--job-id", "7", "--fail-for", "7", "--pdb"]
+    if sys.stdout.fileno() != 1:
+        entry(app, args)
+        assert "Not invoking pdb" in caplog.text
+    # else you don't want to interactively debug this way.
