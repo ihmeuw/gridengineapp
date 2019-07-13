@@ -24,6 +24,10 @@ class LocationJob(Job):
         LOGGER.info(f"Running job {self.location_id}")
         self.mock_run()
 
+    def done(self):
+        errors = [output.validate() for output in self.outputs]
+        return not errors
+
 
 class Application:
     def __init__(self):
@@ -67,4 +71,4 @@ class Application:
 
 if __name__ == "__main__":
     app = Application()
-    entry(app)
+    exit(entry(app))
