@@ -36,9 +36,13 @@ class FairDbFuncArg:
 def shared_cluster_tmp(tmp_path_factory):
     cluster_tmp = configuration()["cluster-tmp"]
     tmp_path = Path(cluster_tmp.format(user=getuser())) / "tmp"
-    tmp_path.mkdir(parents=True, exist_ok=True)
-    tmp_path_factory._basetemp = tmp_path
-    return tmp_path_factory.mktemp("run")
+    if Path(*tmp_path.parts[:2]).exists():
+        # the fixture still gets made, even if fair isn't chosen.
+        tmp_path.mkdir(parents=True, exist_ok=True)
+        tmp_path_factory._basetemp = tmp_path
+        return tmp_path_factory.mktemp("run")
+    else:
+        return None
 
 
 @pytest.fixture(scope="session")

@@ -80,6 +80,7 @@ def execution_parser():
         specified memory limit.
         """),
     )
+    remove_for_jobs["--memory-limit"] = True
 
     graph = parser.add_argument_group(
         "Job Graph",

@@ -7,3 +7,15 @@ from pygrid.job import Job
 from pygrid.identifier import IntegerIdentifier, StringIdentifier
 from pygrid.main import entry
 from pygrid.exceptions import NodeMisconfigurationError
+
+__all__ = [
+    "qdel", "qstat", "qstat_short", "qsub", "qsub_template",
+    "FileEntity",
+    "PandasFile",
+    "ShelfFile",
+    "Job",
+    "IntegerIdentifier",
+    "StringIdentifier",
+    "entry",
+    "NodeMisconfigurationError",
+]

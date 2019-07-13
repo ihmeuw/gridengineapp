@@ -82,8 +82,8 @@ def find_or_create_executable(application):
 
 def subprocess_executable(app):
     argv0 = find_or_create_executable(app)
-    environment_base = Path(sys.exec_prefix)
-    return environment_base, argv0
+    python_executable = Path(sys.executable)
+    return python_executable, argv0
 
 
 def executable_for_job(app):
