@@ -184,7 +184,7 @@ correct fake files exist when a Job first starts.
 
 
 Run on the Cluster
-------------------
+^^^^^^^^^^^^^^^^^^
 
 On the cluster, start the whole thing with the command::
 
@@ -199,7 +199,7 @@ for the particular location running.
 
 
 Smaller Run on One Node
------------------------
+^^^^^^^^^^^^^^^^^^^^^^^
 
 If there is less work to do, it may be easier to run
 this application interactively, using all the cores

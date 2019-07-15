@@ -59,6 +59,10 @@ class PAFApplication:
             self.base_directory = args.base_directory
         self.cause_cnt = args.cause_cnt
 
+    @staticmethod
+    def job_id_to_arguments(job_id):
+        return ["--job-id", job_id]
+
     def job_graph(self):
         job_graph = nx.DiGraph()
         aggregate = "aggregate"

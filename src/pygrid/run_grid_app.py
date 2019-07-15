@@ -89,6 +89,10 @@ def configure_qsub(name, job_id, resources, holds, args):
 def launch_jobs(app, args, arg_list, args_to_remove):
     """
     Launches grid engine jobs for this app.
+
+    If an edge in a job graph has a "launch" property, set to True,
+    then the dependent job will wait until the previous job is
+    launched but not wait for it to finish.
     """
     job_graph = job_subset(app, args)
     job_name = app.name + args.run_id
@@ -96,7 +100,10 @@ def launch_jobs(app, args, arg_list, args_to_remove):
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
         job_args = run_job_under_no_profile(app, arg_list, args_to_remove, job_id)
-        holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
+        holds = list()
+        for source, _sink, data in job_graph.in_edges(job_id, data=True):
+            if not ("launch" in data and data["launch"]):
+                holds.append(grid_id[source])
         template = configure_qsub(
             job_name, job_id, app.job(job_id).resources, holds, args
         )

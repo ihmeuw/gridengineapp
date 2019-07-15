@@ -317,7 +317,7 @@ file exists.
 """
 
 
-def check_complete(identify_job, check_done, timeout=600):
+def check_complete(identify_job, check_done, timeout=60*60):
     """
     Submit a job and check that it ran.
     If the job never shows up in the queue, and

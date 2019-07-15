@@ -114,10 +114,12 @@ def execution_parser():
         "Debugging and Logging",
         "Flags that affect debugging and logging of jobs."
     )
-    debug.add_argument("-v", "--verbose", action="count", default=0,
+    debug.add_argument("--verbose-app", action="count", default=0,
                        help="Increase verbosity of logging")
-    debug.add_argument("-q", "--quiet", action="count", default=0,
+    remove_for_jobs["--verbose-app"] = False
+    debug.add_argument("--quiet-app", action="count", default=0,
                        help="Decrease verbosity of logging")
+    remove_for_jobs["--quiet-app"] = False
     debug.add_argument(
         "--pdb", action="store_true",
         help="Invoke interactive debugger on error.",

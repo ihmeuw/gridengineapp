@@ -99,7 +99,8 @@ def entry(app, arg_list=None):
     parser, args_to_remove = execution_parser()
     app.add_arguments(parser)
     args = parser.parse_args(arg_list)
-    logging.basicConfig(level=logging.INFO + 10 * (args.quiet - args.verbose))
+    offset = 10 * (args.quiet_app - args.verbose_app)
+    logging.basicConfig(level=logging.INFO + offset)
     restart_cnt = restart_count()
     try:
         app.initialize(args)
