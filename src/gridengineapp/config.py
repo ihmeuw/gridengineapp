@@ -1,9 +1,12 @@
 from configparser import ConfigParser
 from getpass import getuser
+from logging import getLogger
 from pathlib import Path
+from tempfile import gettempdir
 
 from pkg_resources import resource_string
-from tempfile import gettempdir
+
+LOGGER = getLogger(__name__)
 
 
 def configuration(alternate_configparser=None):
@@ -19,12 +22,14 @@ def configuration(alternate_configparser=None):
     Returns:
         ConfigParser.SectionProxy: This is a mapping type.
     """
-    if not hasattr(configuration, "_config"):
-        if alternate_configparser:
-            configuration._config = alternate_configparser[__package__]
+    if (not hasattr(configuration, "_config") or
+            alternate_configparser is not None):
         bytes_form = resource_string(__package__, "configuration.cfg")
         parser = ConfigParser()
         parser.read_string(bytes_form.decode())
+        if (alternate_configparser is not None and
+                alternate_configparser.has_section(__package__)):
+            parser.read_dict(alternate_configparser)
         section = parser[__package__]
         configuration._config = section
     return configuration._config

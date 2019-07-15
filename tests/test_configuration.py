@@ -17,12 +17,21 @@ def test_shell_directory():
     assert shell_dir.is_dir()
 
 
-def test_use_configparser():
-    bytes_form = resource_string("gridengineapp", "configuration.cfg")
+def test_use_outside_configuration():
+    """Verify that external config adds to internal config."""
     parser = ConfigParser()
-    parser.read_string(bytes_form.decode())
-    section = parser["gridengineapp"]
-    print(dir())
-    print(type(section))
-    for k, v in section.items():
-        print(f"{k}: {type(v)} {v}")
+    parser.read_string("""
+    [gridengineapp]
+    queues = i.q
+    """)
+    if hasattr(configuration, "_config"):
+        delattr(configuration, "_config")
+    config = configuration(parser)
+    assert "project" in config
+    # This new queue overwrote.
+    assert config["queues"] == "i.q"
+
+    config = configuration()
+    assert "project" in config
+    # And later queries get the overwritten one.
+    assert config["queues"] == "i.q"
