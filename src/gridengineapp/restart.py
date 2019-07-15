@@ -17,7 +17,10 @@ def restart_count():
     Returns:
         int: The number of restarts.
     """
-    clipped_restart_cnt = environ.get("RESTARTED", 0)
+    try:
+        clipped_restart_cnt = int(environ.get("RESTARTED", 0))
+    except ValueError:
+        clipped_restart_cnt = 0
     if clipped_restart_cnt == 0:
         restart_cnt = 0
     else:
