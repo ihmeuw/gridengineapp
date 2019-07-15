@@ -57,7 +57,7 @@ def find_or_create_executable(application):
     elif not app_has_main and installed:
         main_str = dedent(f"""
             from {module_name} import {class_name}
-            from pygrid import entry
+            from gridengineapp import entry
             app = {class_name}()
             exit(entry(app))
         """)
@@ -70,7 +70,7 @@ def find_or_create_executable(application):
             import sys
             sys.path.append("{module_dir}")
             from {module_name} import {class_name}
-            from pygrid import entry
+            from gridengineapp import entry
             app = {class_name}()
             exit(entry(app))
         """)

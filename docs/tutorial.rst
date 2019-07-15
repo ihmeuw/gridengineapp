@@ -22,7 +22,7 @@ we want to submit 300 jobs, for every cause of death.
 Start by making a template that describes all
 of the jobs::
 
-   from pygrid import QsubTemplate
+   from gridengineapp import QsubTemplate
    template = QsubTemplate()
    template.P = "proj_forecasting"
    template.q = "all.q"
@@ -32,7 +32,7 @@ of the jobs::
 
 Now we want to submit a bunch of jobs::
 
-   from pygrid import qsub
+   from gridengineapp import qsub
    job_id = list()
    for cause in range(300):
        job_id.append(qsub(template, ["/ihme/code/borlaug/run.sh", cause]))
@@ -41,7 +41,7 @@ That gives you a bunch of job IDs.
 If the list of job IDs is small, you might find
 their status by passing them into ``qstat``::
 
-   from pygrid import qstat
+   from gridengineapp import qstat
    jobs = qstat(job_list=job_id)
    for job in jobs:
        if "error" in job.status:
@@ -65,7 +65,7 @@ of an important piece of software. In these cases, you can
 start your code with a check of the node and, if it looks bad,
 restart the job::
 
-   from pygrid import restart_count
+   from gridengineapp import restart_count
 
    # This command increments the restart count, stored in file
    # in the logging directory.

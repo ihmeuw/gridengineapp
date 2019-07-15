@@ -6,10 +6,10 @@ from time import sleep, time
 
 import pytest
 
-from pygrid import entry, check_complete
-from pygrid.application import check_application
-from pygrid.tests.cascade_app import CascadeIsh
-from pygrid.tests.task_app import Singleton
+from gridengineapp import entry, check_complete
+from gridengineapp.application import check_application
+from gridengineapp.tests.cascade_app import CascadeIsh
+from gridengineapp.tests.task_app import Singleton
 
 
 @pytest.fixture

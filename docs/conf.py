@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.abspath(os.path.expanduser("../src")))
 
 # -- Project information -----------------------------------------------------
 
-project = 'pygrid'
+project = 'gridengineapp'
 copyright = '2019, Drew Dolgert'
 author = 'Drew Dolgert'
 try:

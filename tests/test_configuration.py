@@ -1,4 +1,4 @@
-from pygrid.config import shell_directory, configuration
+from gridengineapp.config import shell_directory, configuration
 from pathlib import Path
 
 

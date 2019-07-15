@@ -1,6 +1,6 @@
 from copy import deepcopy
 
-from pygrid.data_passing import PandasFile, ShelfFile, FileEntity
+from gridengineapp.data_passing import PandasFile, ShelfFile, FileEntity
 
 
 def test_file_path_constructed(tmp_path):
