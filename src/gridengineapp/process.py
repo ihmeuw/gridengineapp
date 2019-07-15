@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import lru_cache
 from logging import getLogger
-from os import environ
+from os import environ, linesep
 from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
 from time import sleep
 
@@ -59,8 +59,9 @@ def actually_failed(called_process_error):
             LOGGER.info(f"Return code was {ok_code} so try again.")
             return
     actual_errors = configuration()["real-failure-messages"]
-    for really_done in actual_errors:
-        if really_done in str(called_process_error.stderr):
+    # Each line of the string is a separate message.
+    for really_done in actual_errors.strip().split(linesep):
+        if really_done.strip() in str(called_process_error.stderr):
             raise RuntimeError(called_process_error.stderr)
 
 

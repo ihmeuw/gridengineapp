@@ -43,7 +43,7 @@ def choose_queue(run_time_minutes):
     Returns:
         str: The name of the queue to use.
     """
-    queues = configuration()["queues"]
+    queues = configuration()["queues"].split()
     acceptable = list()
     for queue in queues:
         queue_minutes = max_run_minutes_on_queue(queue)

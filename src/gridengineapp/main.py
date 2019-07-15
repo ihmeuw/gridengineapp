@@ -3,6 +3,7 @@ import logging
 import sys
 from bdb import BdbQuit
 from enum import Enum
+from inspect import getmembers, ismethod
 from types import SimpleNamespace
 
 import networkx as nx
@@ -10,6 +11,7 @@ import networkx as nx
 from .argument_handling import (
     setup_args_for_job, execution_parser
 )
+from .config import configuration
 from .determine_executable import subprocess_executable
 from .graph_choice import job_subset, execution_ordered
 from .run_grid_app import launch_jobs
@@ -92,6 +94,15 @@ class GridEngineReturnCodes(Enum):
     FailAndDeleteHoldingJobs = 100
 
 
+def configure_from_application(app):
+    """If the application has a configuration method,
+    then call it. That method should return a ConfigParser instance
+    that has a section for this package."""
+    app_methods = {name: func for (name, func) in getmembers(app, ismethod)}
+    if "configuration" in app_methods:
+        configuration(app.configuration())
+
+
 def entry(app, arg_list=None):
     """
     This starts the application. Use it with::
@@ -105,6 +116,7 @@ def entry(app, arg_list=None):
         arg_list (Namespace|SimpleNamespace): Arguments to the command line.
             This is usually None and is used for testing.
     """
+    configure_from_application(app)
     parser, args_to_remove = execution_parser()
     app.add_arguments(parser)
     args = parser.parse_args(arg_list)

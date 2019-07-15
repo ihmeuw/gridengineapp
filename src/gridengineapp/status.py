@@ -30,7 +30,6 @@ def qstat_request(effective_user=None, job_list=None):
     if job_list:
         args.extend(["-j", str(job_list)])
     qstat_config = configuration()
-    qstat_timeout = qstat_config["qstat-timeout-seconds"]
     custom_env = environ.copy()
     custom_env["SGE_LONG_JOB_NAMES"] = qstat_config["qstat-long-job-names"]
     return run_check("qstat", args)

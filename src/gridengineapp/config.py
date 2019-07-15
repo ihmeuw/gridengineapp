@@ -1,15 +1,33 @@
-from functools import lru_cache
+from configparser import ConfigParser
 from getpass import getuser
 from pathlib import Path
+
+from pkg_resources import resource_string
 from tempfile import gettempdir
 
-import toml
-from pkg_resources import resource_string
 
+def configuration(alternate_configparser=None):
+    """Returns a configuration dictionary.
+    If something passes in an object of type ConfigParser,
+    then we use that.
 
-@lru_cache(maxsize=1)
-def configuration():
-    return toml.loads(resource_string("gridengineapp", "configuration.toml").decode())
+    Args:
+        alternate_configparser (ConfigParser.SectionProxy):
+            If this is passed in, then use this instead of
+            the internal config parser.
+
+    Returns:
+        ConfigParser.SectionProxy: This is a mapping type.
+    """
+    if not hasattr(configuration, "_config"):
+        if alternate_configparser:
+            configuration._config = alternate_configparser[__package__]
+        bytes_form = resource_string(__package__, "configuration.cfg")
+        parser = ConfigParser()
+        parser.read_string(bytes_form.decode())
+        section = parser[__package__]
+        configuration._config = section
+    return configuration._config
 
 
 def shell_directory():

@@ -48,7 +48,7 @@ def qsub_template():
             archive=True,
         ),
         P=settings["project"],
-        q=settings["queues"][0],
+        q=settings["queues"].split()[0],
     )
     return template
 
@@ -63,7 +63,7 @@ def test_live_qsub(
     """
     qsub_template["b"] = "y"
     settings = configuration()
-    queues = settings["queues"]
+    queues = settings["queues"].split()
     if queue_idx < len(queues):
         qsub_template["q"] = queues[queue_idx]
     else:
