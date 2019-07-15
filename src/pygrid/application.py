@@ -2,7 +2,6 @@ from argparse import ArgumentParser
 
 import networkx as nx
 
-from pygrid.identifier import IntegerIdentifier
 from .job import Job
 
 
@@ -23,6 +22,16 @@ class Application:
 
     def job_identifiers(self, args):
         if hasattr(args, "job_id") and isinstance(args.job_id, int):
-            return [IntegerIdentifier(args.job_id)]
+            return [args.job_id]
         else:
             return self.job_graph().nodes
+
+
+def check_application(app):
+    parser = ArgumentParser()
+    args = app.add_arguments(parser).parse_args([])
+    app.initialize(args)
+    graph = app.job_graph()
+    assert isinstance(graph, nx.DiGraph)
+    identifiers = app.job_identifiers(args)
+    assert len(identifiers) == len(graph.nodes)

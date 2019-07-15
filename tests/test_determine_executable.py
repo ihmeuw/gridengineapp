@@ -21,7 +21,7 @@ def example_module(examples, monkeypatch):
 
 def test_find_or_create_executable_uninstalled_has_init(example_module):
     location_module = example_module("location_hierarchy", "location_app")
-    app_class = location_module.Application
+    app_class = location_module.LocationApp
     argv0 = find_or_create_executable(app_class)
     assert len(argv0) == 1
     assert Path(argv0[0]).name == "location_app.py"

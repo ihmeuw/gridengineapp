@@ -1,17 +1,18 @@
 import faulthandler
 import logging
+import sys
 from bdb import BdbQuit
 from enum import Enum
 from types import SimpleNamespace
 
 import networkx as nx
 
-from pygrid.argument_handling import (
+from .argument_handling import (
     setup_args_for_job, execution_parser
 )
-from pygrid.determine_executable import subprocess_executable
-from pygrid.graph_choice import job_subset, execution_ordered
-from pygrid.run_grid_app import launch_jobs
+from .determine_executable import subprocess_executable
+from .graph_choice import job_subset, execution_ordered
+from .run_grid_app import launch_jobs
 from .exceptions import NodeMisconfigurationError
 from .multiprocess import graph_do
 from .restart import restart_count
@@ -34,6 +35,9 @@ def run_jobs(app, args):
     except Exception:  # Too broad be we re-raise.
         if args.pdb:
             # invokes debugger when an exception happens.
+            if sys.stdout.fileno() != 1:
+                LOGGER.info(f"Not invoking pdb because stdout is captured")
+                raise
             import pdb
             import traceback
 
@@ -50,12 +54,22 @@ def multiprocess_jobs(app, args, arg_list, args_to_remove):
         keep = [job for job in job_graph.nodes
                 if job not in completed_jobs]
         remaining = nx.subgraph(job_graph, keep)
-        runnable = [rem for rem in execution_ordered(remaining)
-                    if not list(remaining.predecessors(rem))]
+        runnable = list()
+
+        for remain_job in execution_ordered(remaining):
+            has_dependencies = False
+            for _u, _v, data in remaining.in_edges(remain_job, data=True):
+                # Don't count this particular edge as a dependency.
+                if not ("launch" in data and data["launch"]):
+                    has_dependencies = True
+            if not has_dependencies:
+                runnable.append(remain_job)
+
         job_descriptions = dict()
         for job_id in runnable:
             python_executable, argv0 = subprocess_executable(app)
-            args = setup_args_for_job(args_to_remove, job_id, arg_list)
+            job_select = app.job_id_to_arguments(job_id)
+            args = setup_args_for_job(args_to_remove, job_select, arg_list)
             job = app.job(job_id)
             job_descriptions[job_id] = SimpleNamespace(
                 memory=job.resources["memory_gigabytes"],
@@ -71,7 +85,7 @@ class GridEngineReturnCodes(Enum):
     These are return codes that Grid Engine recognizes.
     Any other return codes are treated as OK. If you don't
     return 100, then it will try to run the next job that's holding
-    for this job.
+    for this job. "man sge_diagnostics" to see more.
     """
     OK = 0
     RequestRestart = 99
@@ -94,7 +108,8 @@ def entry(app, arg_list=None):
     parser, args_to_remove = execution_parser()
     app.add_arguments(parser)
     args = parser.parse_args(arg_list)
-    logging.basicConfig(level=logging.INFO + 10 * (args.quiet - args.verbose))
+    offset = 10 * (args.quiet_app - args.verbose_app)
+    logging.basicConfig(level=logging.INFO + offset)
     restart_cnt = restart_count()
     try:
         app.initialize(args)

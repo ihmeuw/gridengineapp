@@ -1,13 +1,13 @@
 import logging
 import re
 
-from pygrid import qsub
-from pygrid.argument_handling import setup_args_for_job
-from pygrid.config import configuration
-from pygrid.determine_executable import executable_for_job
-from pygrid.graph_choice import job_subset, execution_ordered
-from pygrid.qsub_template import QsubTemplate
-from pygrid.submit import max_run_minutes_on_queue
+from .argument_handling import setup_args_for_job
+from .config import configuration
+from .determine_executable import executable_for_job
+from .graph_choice import job_subset, execution_ordered
+from .qsub_template import QsubTemplate
+from .submit import max_run_minutes_on_queue
+from .submit import qsub
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,8 @@ def run_job_under_no_profile(app, arg_list, args_to_remove, job_id):
     it makes the work much more likely to run for another user.
     """
     script = executable_for_job(app)
-    args = setup_args_for_job(args_to_remove, job_id, arg_list)
+    job_select = app.job_id_to_arguments(job_id)
+    args = setup_args_for_job(args_to_remove, job_select, arg_list)
     return ["/bin/bash", "--noprofile", "--norc", script] + args
 
 
@@ -88,16 +89,29 @@ def configure_qsub(name, job_id, resources, holds, args):
 def launch_jobs(app, args, arg_list, args_to_remove):
     """
     Launches grid engine jobs for this app.
+
+    If an edge in a job graph has a "launch" property, set to True,
+    then the dependent job will wait until the previous job is
+    launched but not wait for it to finish.
     """
     job_graph = job_subset(app, args)
-    job_name = app.name + args.run_id
+    if hasattr(app, "name"):
+        app_name = app.name
+    else:
+        app_name = app.__class__.__name__
+    job_name = app_name + args.run_id
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):
         job_args = run_job_under_no_profile(app, arg_list, args_to_remove, job_id)
-        holds = [grid_id[jid] for jid in job_graph.predecessors(job_id)]
+        holds = list()
+        for source, _sink, data in job_graph.in_edges(job_id, data=True):
+            if not ("launch" in data and data["launch"]):
+                holds.append(grid_id[source])
         template = configure_qsub(
             job_name, job_id, app.job(job_id).resources, holds, args
         )
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id
+    LOGGER.debug(f"Launched {', '.join(grid_id.values())}")
+    return grid_id

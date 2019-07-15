@@ -1,7 +1,8 @@
-from pathlib import Path
-from os import environ
-from pygrid.config import configuration
 from getpass import getuser
+from os import environ
+from pathlib import Path
+
+from .config import configuration
 
 
 def restart_count():
@@ -23,9 +24,11 @@ def restart_count():
         template = configuration()["restart-file-location"]
         temporary_path = Path(template.format(user=getuser()))
         temporary_path.mkdir(parents=True, exist_ok=True)
-        job_id = environ.get("JOB_ID", "unknown-job")
-        task_id = environ.get("SGE_TASK_ID", "unknown-task")
-        marker_path = temporary_path / f"{job_id}.{task_id}.restart"
+        job_id = [environ.get("JOB_ID", "unknown-job")]
+        task_id = environ.get("SGE_TASK_ID", "undefined")
+        if task_id != "undefined":
+            job_id.append(task_id)
+        marker_path = temporary_path / "_".join(job_id)
         if marker_path.exists():
             with marker_path.open("r") as check:
                 restart_cnt = len(check.read()) + 1

@@ -1,14 +1,7 @@
 class Job:
     def __init__(self):
-        self._inputs = list()
-        self._outputs = list()
-
-    @property
-    def identifier(self):
-        if hasattr(self, "_id"):
-            return self._id
-        else:
-            raise NotImplementedError()
+        self._inputs = dict()
+        self._outputs = dict()
 
     @property
     def resources(self):
@@ -30,12 +23,12 @@ class Job:
         pass
 
     def mock_run(self):
-        for input in self.inputs:
+        for input in self.inputs.values():
             input.validate()
 
-        for output in self.outputs:
+        for output in self.outputs.values():
             output.mock()
 
     def done(self):
-        errors = [output.validate() for output in self.outputs]
+        errors = [output.validate() for output in self.outputs.values()]
         return all(err is None for err in errors)

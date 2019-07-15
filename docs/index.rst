@@ -10,6 +10,7 @@ Welcome to pygrid's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   apptutorial
    tutorial
    requirements
    testing

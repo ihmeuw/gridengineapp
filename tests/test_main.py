@@ -4,7 +4,8 @@ from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
 from textwrap import dedent
-from time import sleep, time
+from time import sleep
+from secrets import token_hex
 
 import networkx as nx
 import pytest
@@ -31,8 +32,7 @@ LOGGER = getLogger(__name__)
 ])
 def test_args_for_int_job(to_remove, arglist, expected):
     """For jobs within a qsub, arguments are stripped."""
-    job_id = IntegerIdentifier(7)
-    result = setup_args_for_job(to_remove, job_id, arglist)
+    result = setup_args_for_job(to_remove, ["--job-id", "7"], arglist)
     assert result == expected
 
 
@@ -64,7 +64,7 @@ class LocationJob(Job):
         super().__init__()
         self.location_id = location_id
         out_file = base_directory / f"data/{location_id}.hdf"
-        self.outputs.append(FileEntity(out_file))
+        self.outputs["out"] = FileEntity(out_file)
 
     @property
     def identifier(self):
@@ -78,14 +78,8 @@ class LocationJob(Job):
 class Application:
     def __init__(self):
         self._max_level = None
-        self._name = None
+        self.name = "testapp37"
         self.base_directory = Path(".")
-
-    @property
-    def name(self):
-        if not self._name:
-            self._name = f"location_app"
-        return self._name
 
     def add_arguments(self, parser=None):
         if parser is None:
@@ -98,6 +92,10 @@ class Application:
     def initialize(self, args):
         if args.base_directory is not None:
             self.base_directory = args.base_directory
+
+    @staticmethod
+    def job_id_to_arguments(job_id):
+        return ["--job-id", str(job_id)]
 
     def job_graph(self):
         locations = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
@@ -145,7 +143,7 @@ def test_local_continue_jobs(tmp_path):
     mtime = data0.stat().st_mtime
     sleep(1)
 
-    args = ["--continue", "-v", "--base-directory", str(tmp_path)]
+    args = ["--continue", "--verbose-app", "--base-directory", str(tmp_path)]
     app = Application()
     entry(app, args)
 
@@ -154,14 +152,14 @@ def test_local_continue_jobs(tmp_path):
     assert len(list(data.glob("*.hdf"))) == 13
 
 
-def test_remote_continue_jobs(fair):
-    base = Path().cwd()
+def test_remote_continue_jobs(fair, shared_cluster_tmp):
+    """
+    Given one job that's done, show this does the rest of the jobs.
+    """
+    base = shared_cluster_tmp
 
+    # Start by making a single one of 13 files.
     data = base / "data"
-    if data.exists():
-        for contents in data.glob("*.hdf"):
-            contents.unlink()
-
     args = [
         "--job-id", "0", "--base-directory", str(base)
     ]
@@ -172,38 +170,24 @@ def test_remote_continue_jobs(fair):
     mtime = data0.stat().st_mtime
     sleep(1)
 
+    # Then ask the framework to continue.
+    unique = token_hex(4)
+    app_full_name = app.name + unique
     args = [
-        "--grid-engine",
-        "--continue", "-q", "--base-directory", str(base)
+        "--grid-engine", "--run-id", unique,
+        "--continue", "--verbose-app", "--base-directory", str(base)
     ]
-    script = Path("script.py")
-    with script.open("w") as outscript:
-        outscript.write(dedent("""
-        from test_main import Application
-        from pygrid import entry
-        app = Application()
-        entry(app)
-        print(app.name)
-        """))
-    print(f"Running with args {args}")
-    result = subprocess.run(
-        [sys.executable, script] + args,
-        capture_output=True,
-        universal_newlines=True,
-        shell=False,
-        check=True,
-    )
-    app_name = result.stdout.strip()
-    print(f"looking for {app_name}")
+    entry(app, args)
 
     def identify_job(j):
-        return j.name.startswith(app_name)
+        return j.name.startswith(app_full_name)
 
     def check_done():
         return len(list(data.glob("*.hdf"))) == 13
 
+    timeout_seconds = 3 * 60
     try:
-        check_complete(identify_job, check_done)
+        check_complete(identify_job, check_done, timeout_seconds)
     except TimeoutError as te:
         if te.args[1] == "engine":
             return  # This means the queue was slow.
@@ -212,4 +196,5 @@ def test_remote_continue_jobs(fair):
 
     # This says we didn't modify the file that was already there.
     assert data0.stat().st_mtime == mtime
+    # But all of the jobs are done.
     assert len(list(data.glob("*.hdf"))) == 13

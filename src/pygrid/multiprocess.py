@@ -105,6 +105,7 @@ def _nice_process():
 
 def _run_or_throw(args):
     try:
+        args = [str(arg) for arg in args]
         child = subprocess.Popen(args=args, preexec_fn=_nice_process)
     except ValueError as ve:
         raise Exception(f"Invalid arguments to process: {ve}")

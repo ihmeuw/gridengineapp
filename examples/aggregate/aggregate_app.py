@@ -5,40 +5,31 @@ import csv
 
 import networkx as nx
 
-from pygrid import Job, FileEntity, StringIdentifier
+from pygrid import Job, FileEntity
 
 LOGGER = getLogger(__name__)
 
 
 class PAFJob(Job):
-    def __init__(self, identifier, base_directory):
+    def __init__(self, cause, base_directory):
         super().__init__()
-        cause = str(identifier)
-        self._id = identifier
+        self.cause = cause
         self.out_file = base_directory / f"{cause}.csv"
-        self.outputs.append(FileEntity(self.out_file))
-
-    @property
-    def identifier(self):
-        return self._id
+        self.outputs["out"] = FileEntity(self.out_file)
 
     def run(self):
         with Path(self.out_file).open("w") as csvfile:
             writer = csv.writer(csvfile)
-            writer.writerow([3, 7, 9, str(self._id)])
+            writer.writerow([3, 7, 9, str(self.cause)])
 
 
 class AggregateJob(Job):
     def __init__(self, base_directory):
         super().__init__()
         self.base_directory = base_directory
-        self._id = StringIdentifier("aggregate")
+        self.cause = "aggregate"
         self.out_file = Path(base_directory / f"all.csv")
-        self.outputs.append(FileEntity(self.out_file))
-
-    @property
-    def identifier(self):
-        return self._id
+        self.outputs["out"] = FileEntity(self.out_file)
 
     def run(self):
         causes = self.base_directory.glob("*.csv")
@@ -60,32 +51,37 @@ class PAFApplication:
             parser = ArgumentParser()
         parser.add_argument("--base-directory", type=Path)
         parser.add_argument("--cause-cnt", type=int, default=5)
-        StringIdentifier.add_arguments(parser)
+        parser.add_argument("--job-idx", type=str, help="The job ID")
         return parser
 
     def initialize(self, args):
         if args.base_directory is not None:
             self.base_directory = args.base_directory
+        self.base_directory.mkdir(parents=True, exist_ok=True)
         self.cause_cnt = args.cause_cnt
+
+    @staticmethod
+    def job_id_to_arguments(job_id):
+        return ["--job-id", job_id]
 
     def job_graph(self):
         job_graph = nx.DiGraph()
-        aggregate = StringIdentifier("aggregate")
+        aggregate = "aggregate"
         job_graph.add_edges_from(
-            (StringIdentifier(f"cause_{chr(97 + i)}"), aggregate)
+            (f"cause_{chr(97 + i)}", aggregate)
             for i in range(self.cause_cnt)
         )
         return job_graph
 
     def job(self, identifier):
-        if identifier == StringIdentifier("aggregate"):
+        if identifier == "aggregate":
             return AggregateJob(self.base_directory)
         else:
             return PAFJob(identifier, self.base_directory)
 
     def job_identifiers(self, args):
         if hasattr(args, "job_id") and isinstance(args.job_id, str):
-            return [StringIdentifier(args.job_id)]
+            return [args.job_id]
         else:
             return self.job_graph().nodes
 

@@ -1,7 +1,7 @@
 from functools import lru_cache
 from logging import getLogger
 
-from pygrid.qsub_template import QsubTemplate
+from .qsub_template import QsubTemplate
 from .process import run_check
 
 LOGGER = getLogger(__name__)
