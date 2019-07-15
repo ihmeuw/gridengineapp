@@ -54,8 +54,17 @@ def multiprocess_jobs(app, args, arg_list, args_to_remove):
         keep = [job for job in job_graph.nodes
                 if job not in completed_jobs]
         remaining = nx.subgraph(job_graph, keep)
-        runnable = [rem for rem in execution_ordered(remaining)
-                    if not list(remaining.predecessors(rem))]
+        runnable = list()
+
+        for remain_job in execution_ordered(remaining):
+            has_dependencies = False
+            for _u, _v, data in remaining.in_edges(remain_job, data=True):
+                # Don't count this particular edge as a dependency.
+                if not ("launch" in data and data["launch"]):
+                    has_dependencies = True
+            if not has_dependencies:
+                runnable.append(remain_job)
+
         job_descriptions = dict()
         for job_id in runnable:
             python_executable, argv0 = subprocess_executable(app)

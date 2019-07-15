@@ -34,6 +34,8 @@ class FairDbFuncArg:
 
 @pytest.fixture(scope="session")
 def shared_cluster_tmp(tmp_path_factory):
+    """This is a tmp_path that will be available from all cluster nodes
+    inside Grid Engine jobs."""
     cluster_tmp = configuration()["cluster-tmp"]
     tmp_path = Path(cluster_tmp.format(user=getuser())) / "tmp"
     if Path(*tmp_path.parts[:2]).exists():

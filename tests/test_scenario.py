@@ -27,7 +27,7 @@ def test_location_app_scenario_functions(example_module, tmp_path):
     assert len(list((tmp_path / "data").glob("*.hdf"))) == 13
 
 
-def test_location_app_scenario_processes(example_module, tmp_path):
+def test_location_app_scenario_processes_parallel(example_module, tmp_path):
     location_module = example_module("location_hierarchy", "location_app")
     app = location_module.LocationApp()
     args = ["--base-directory", str(tmp_path), "--memory-limit", "2"]
