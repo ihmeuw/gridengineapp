@@ -1,7 +1,7 @@
 import networkx as nx
 import pytest
 
-from pygrid.run_grid_app import sanitize_id
+from gridengineapp.run_grid_app import sanitize_id
 
 
 @pytest.mark.parametrize("input,output", [

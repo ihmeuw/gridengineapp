@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from pygrid.determine_executable import (
+from gridengineapp.determine_executable import (
     find_or_create_executable, module_has_main_guard
 )
 

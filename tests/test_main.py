@@ -10,11 +10,11 @@ from secrets import token_hex
 import networkx as nx
 import pytest
 
-from pygrid import (
+from gridengineapp import (
     Job, FileEntity, IntegerIdentifier, entry, check_complete,
 )
-from pygrid.argument_handling import setup_args_for_job
-from pygrid.graph_choice import jobs_not_done
+from gridengineapp.argument_handling import setup_args_for_job
+from gridengineapp.graph_choice import jobs_not_done
 
 LOGGER = getLogger(__name__)
 

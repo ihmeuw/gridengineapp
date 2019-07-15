@@ -4,7 +4,7 @@ from argparse import Namespace
 
 import pytest
 
-from pygrid.multiprocess import (
+from gridengineapp.multiprocess import (
     graph_do, NotEnoughResources, ChildProcessProblem
 )
 

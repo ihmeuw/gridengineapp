@@ -1,6 +1,6 @@
 import xml.etree.ElementTree as ET
 
-from pygrid.status import for_each_member, FlyWeightJob, job_states
+from gridengineapp.status import for_each_member, FlyWeightJob, job_states
 
 
 def test_for_each_member_happy():

@@ -5,7 +5,7 @@ import csv
 
 import networkx as nx
 
-from pygrid import Job, FileEntity
+from gridengineapp import Job, FileEntity
 
 LOGGER = getLogger(__name__)
 

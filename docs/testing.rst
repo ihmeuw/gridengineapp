@@ -13,13 +13,13 @@ concurrent Unix processes that run within this same environment,
 on the same or different machines.
 
  * For a Grid Engine job, there is a parent invocation of the
-   ``pygrid.entry()`` method, done on a Grid Engine submission host.
+   ``gridengineapp.entry()`` method, done on a Grid Engine submission host.
    This asks Grid Engine to launch multiple jobs, each of which
-   is a Python main that calls ``pygrid.entry()`` on remote hosts.
+   is a Python main that calls ``gridengineapp.entry()`` on remote hosts.
 
  * For a multiprocess job, there is a parent invocation of
-   ``pygrid.entry()`` on a local host. This then uses subprocesses
-   to run multiple Unix processes, each of which calls ``pygrid.entry()``
+   ``gridengineapp.entry()`` on a local host. This then uses subprocesses
+   to run multiple Unix processes, each of which calls ``gridengineapp.entry()``
    to run a single Job.
 
  * For a whithin-process job, the parent invocation then runs

@@ -3,10 +3,10 @@ from time import sleep, time
 
 import pytest
 
-import pygrid.submit
-from pygrid.config import configuration
-from pygrid.status import check_complete
-from pygrid.submit import template_to_args, qsub
+import gridengineapp.submit
+from gridengineapp.config import configuration
+from gridengineapp.status import check_complete
+from gridengineapp.submit import template_to_args, qsub
 
 
 @pytest.mark.parametrize("template,args", [
@@ -32,7 +32,7 @@ def test_qsub_execute_mock(monkeypatch):
         else:
             return"qsub"
 
-    monkeypatch.setattr(pygrid.submit, "run_check", whatsit)
+    monkeypatch.setattr(gridengineapp.submit, "run_check", whatsit)
     template = dict(q="all.q")
     assert qsub(template, desired) == "mvid"
 

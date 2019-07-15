@@ -3,14 +3,14 @@ from pathlib import Path
 
 import pytest
 
-import pygrid.process
-from pygrid.config import configuration
+import gridengineapp.process
+from gridengineapp.config import configuration
 
-pygrid.process.BLOCK_QCALLS = True
+gridengineapp.process.BLOCK_QCALLS = True
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup("pygrid")
+    group = parser.getgroup("gridengineapp")
     group.addoption("--fair", action="store_true",
                     help="run functions requiring access to fair cluster")
 
@@ -29,7 +29,7 @@ class FairDbFuncArg:
             pytest.skip(
                 f"specify --fair to run tests requiring fair cluster")
 
-        pygrid.process.BLOCK_QCALLS = False
+        gridengineapp.process.BLOCK_QCALLS = False
 
 
 @pytest.fixture(scope="session")

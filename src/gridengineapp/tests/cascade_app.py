@@ -8,7 +8,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from pygrid import Job, FileEntity, entry
+from gridengineapp import Job, FileEntity, entry
 
 
 class LocationSexJob(Job):
@@ -107,7 +107,7 @@ class CascadeIsh:
 
 
 # This entry point is something that the framework
-# will look for. It will use python -m pygrid.tests.cascade_app
+# will look for. It will use python -m gridengineapp.tests.cascade_app
 # to launch the child jobs.
 if __name__ == "__main__":
     exit(entry(CascadeIsh()))

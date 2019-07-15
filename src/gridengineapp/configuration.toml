@@ -1,4 +1,4 @@
-# Configuration for pygrid.
+# Configuration for gridengineapp.
 qstat-timeout-seconds = 60
 qsub-timeout-seconds = 60
 qconf-timeout-seconds = 60

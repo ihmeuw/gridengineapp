@@ -6,7 +6,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from pygrid import Job, FileEntity
+from gridengineapp import Job, FileEntity
 
 
 class SingleJob(Job):
