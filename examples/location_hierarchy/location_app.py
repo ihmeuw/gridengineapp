@@ -23,15 +23,11 @@ class LocationJob(Job):
         self.mock_run()
 
 
-class Application:
+class LocationApp:
     def __init__(self):
         self._max_level = None
         self.base_directory = Path(".")
         self.fail_for = None
-
-    @property
-    def name(self):
-        return "location_app"
 
     def initialize(self, args):
         if args.base_directory is not None:
@@ -77,5 +73,5 @@ class Application:
 
 
 if __name__ == "__main__":
-    app = Application()
+    app = LocationApp()
     exit(entry(app))

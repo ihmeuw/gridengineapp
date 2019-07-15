@@ -95,7 +95,11 @@ def launch_jobs(app, args, arg_list, args_to_remove):
     launched but not wait for it to finish.
     """
     job_graph = job_subset(app, args)
-    job_name = app.name + args.run_id
+    if hasattr(app, "name"):
+        app_name = app.name
+    else:
+        app_name = app.__class__.__name__
+    job_name = app_name + args.run_id
 
     grid_id = dict()
     for job_id in execution_ordered(job_graph):

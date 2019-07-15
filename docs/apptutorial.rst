@@ -36,18 +36,13 @@ good `Networkx Tutorial <https://networkx.github.io/documentation/stable/tutoria
 The main code required to use this framework is the Application
 class. It has the following parts::
 
-    class Application:
+    class GridExample:
+        """The class name will be used as the base name for cluster job names."""
         def __init__(self):
             """An init that takes no arguments, because it will be
             called for the children."""
             self.location_set_version_id = None
             self.gbd_round_id = None
-
-        @property
-        def name(self):
-            """A name that will be used to identify this app
-            for Grid Engine jobs. Run and Job ids are appended"""
-            return "location_app"
 
         def add_arguments(parser):
             """The same argument parser is used for both the initial
@@ -145,7 +140,7 @@ Finally, at the bottom of the file, under the Application,
 we put a snippet that is the ``main()`` for the jobs::
 
     if __name__ == "__main__":
-        app = Application()
+        app = GridExample()
         exit(entry(app))
 
 This will be found by the framework.

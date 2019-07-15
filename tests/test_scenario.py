@@ -21,7 +21,7 @@ def example_module(examples, monkeypatch):
 
 def test_location_app_scenario_functions(example_module, tmp_path):
     location_module = example_module("location_hierarchy", "location_app")
-    app = location_module.Application()
+    app = location_module.LocationApp()
     args = ["--base-directory", str(tmp_path)]
     entry(app, args)
     assert len(list((tmp_path / "data").glob("*.hdf"))) == 13
@@ -29,7 +29,7 @@ def test_location_app_scenario_functions(example_module, tmp_path):
 
 def test_location_app_scenario_processes(example_module, tmp_path):
     location_module = example_module("location_hierarchy", "location_app")
-    app = location_module.Application()
+    app = location_module.LocationApp()
     args = ["--base-directory", str(tmp_path), "--memory-limit", "2"]
     entry(app, args)
     assert len(list((tmp_path / "data").glob("*.hdf"))) == 13
@@ -39,7 +39,7 @@ def test_location_app_scenario_processes_grid(
         example_module, fair, shared_cluster_tmp
 ):
     location_module = example_module("location_hierarchy", "location_app")
-    app = location_module.Application()
+    app = location_module.LocationApp()
     unique = token_hex(3)
     args = ["--base-directory", str(shared_cluster_tmp),
             "--grid-engine", "--run-id", unique]
@@ -60,7 +60,7 @@ def test_drop_into_pdb(example_module, tmp_path, caplog):
     """Tests that we reach the correct code path for pdb."""
     caplog.set_level(logging.INFO)
     location_module = example_module("location_hierarchy", "location_app")
-    app = location_module.Application()
+    app = location_module.LocationApp()
     args = ["--base-directory", str(tmp_path),
             "--job-id", "7", "--fail-for", "7", "--pdb"]
     if sys.stdout.fileno() != 1:
