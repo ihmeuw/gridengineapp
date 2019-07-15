@@ -32,7 +32,60 @@ to build directed acyclic graphs. It has a good [Networkx
 Tutorial](https://networkx.github.io/documentation/stable/tutorial.html).
 
 The main code required to use this framework is the Application class.
-It has the following parts.
+It has the following parts:
+
+    class Application:
+        def __init__(self):
+            """An init that takes no arguments, because it will be
+            called for the children."""
+            self.location_set_version_id = None
+            self.gbd_round_id = None
+
+        @property
+        def name(self):
+            """A name that will be used to identify this app
+            for Grid Engine jobs. Run and Job ids are appended"""
+            return "location_app"
+
+        def add_arguments(parser):
+            """The same argument parser is used for both the initial
+            call to run all the jobs and each time a job is run.
+            These arguments both decide the shape of the graph and,
+            later, the exact job to run within that graph."""
+            parser.add_argument("--location-set-version-id", type=int,
+                                default=429)
+            parser.add_argument("--gbd-round-id", type=int, default=6)
+            parser.add_argument("--job-idx", type=int, help="The job ID")
+
+        def job_id_to_arguments(job_id):
+            """Makes a list of arguments to add to a command line in
+            order to run a specific job."""
+            return ["--job-id", str(job_id)]
+
+        def job_identifiers(self, args):
+            """Given arguments, return the jobs specified.
+            This could be used to subset the whole graph, for instance
+            to run a slice through the locations from global to
+            most-detailed locations."""
+            if args.job_id:
+                return [args.job_id]
+            else:
+                return self.job_graph().nodes
+
+        def initialize(self, args):
+            """Read the arguments in order to know what to do."""
+            self.location_set_version_id = args.location_set_version_id
+            self.gbd_round_id = args.gbd_round_id
+
+        def job_graph(self):
+            """Make the whole job graph and return it."""
+            return location_graph(
+                self.gbd_round_id, self.location_set_version_id)
+
+        def job(self, location_id):
+            """Make a job from its ID.
+            We haven't said what this class is yet."""
+            return LocationJob(location_id)
 
 Most of that work is to define the job graph or parse arguments to
 specify parts of the job graph. The work we do is in a `Job` class.
@@ -42,10 +95,31 @@ The Job Class
 
 A Job itself inherits from a base class, `Job`. The most important parts
 of the Job are its run method and outputs. The run method is simple.
-Give it an empty run method.
+Give it an empty run method:
+
+    def run(self):
+        pass  # Do things.
 
 The class\'s initialization is done by the Application class, so we can
-pass in whatever helps initialize the Job.
+pass in whatever helps initialize the Job:
+
+    class LocationJob(Job):
+        def __init__(self, location_id, gbd_round_id):
+            super().__init__()
+            out_file = Path("/data/home") / f"{location_id}.hdf"
+            self.outputs["paf"] = FileEntity(out_file)
+
+        @property
+        def resources(self):
+            """These can be computed from arguments to init."""
+            return dict(
+                memory_gigabytes=1,
+                threads=1,
+                run_time_minutes=1,
+            )
+
+        def run(self):
+            pass  # Make that output file.
 
 The outputs are a dictionary of objects that check whether a file is in
 a state where we consider this job to have done its work. The
@@ -61,7 +135,11 @@ The Child Job Main
 ------------------
 
 Finally, at the bottom of the file, under the Application, we put a
-snippet that is the `main()` for the jobs,
+snippet that is the `main()` for the jobs:
+
+    if __name__ == "__main__":
+        app = Application()
+        exit(entry(app))
 
 This will be found by the framework.
 
@@ -70,7 +148,9 @@ Running
 
 ### Debug One Job Locally
 
-In order to start one job locally, you can run it with, in this case,
+In order to start one job locally, you can run it with, in this case:
+
+    $ python location_app.py --job-idx 1 --pdb
 
 The `--pdb` will make the job drop into an interactive debugger when it
 encounters an exception.
@@ -79,7 +159,9 @@ encounters an exception.
 
 One way to see that the graph is well-formed is to supply both an input
 list and an output list to each job and run the whole of it using an
-automatic mocking.
+automatic mocking:
+
+    $ python location_app.py --mock
 
 Because there is no `--job-idx` argument, it will try to run the whole
 graph. Because there is no `--grid-engine` argument, it will run it as

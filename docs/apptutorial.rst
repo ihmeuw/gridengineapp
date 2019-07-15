@@ -34,9 +34,7 @@ good `Networkx Tutorial <https://networkx.github.io/documentation/stable/tutoria
 
 
 The main code required to use this framework is the Application
-class. It has the following parts.
-
-.. code:
+class. It has the following parts::
 
     class Application:
         def __init__(self):
@@ -101,17 +99,13 @@ The Job Class
 A Job itself inherits from a base class, ``Job``.
 The most important parts of the Job are its
 run method and outputs. The run method is simple.
-Give it an empty run method.
-
-.. code:
+Give it an empty run method::
 
     def run(self):
         pass  # Do things.
 
 The class's initialization is done by the Application class,
-so we can pass in whatever helps initialize the Job.
-
-.. code:
+so we can pass in whatever helps initialize the Job::
 
     class LocationJob(Job):
         def __init__(self, location_id, gbd_round_id):
@@ -148,9 +142,7 @@ The Child Job Main
 ------------------
 
 Finally, at the bottom of the file, under the Application,
-we put a snippet that is the ``main()`` for the jobs,
-
-.. code:
+we put a snippet that is the ``main()`` for the jobs::
 
     if __name__ == "__main__":
         app = Application()
@@ -165,9 +157,7 @@ Debug One Job Locally
 ^^^^^^^^^^^^^^^^^^^^^
 
 In order to start one job locally, you can run it
-with, in this case,
-
-.. code:
+with, in this case::
 
     $ python location_app.py --job-idx 1 --pdb
 
@@ -180,9 +170,7 @@ Check Outputs Match Inputs
 
 One way to see that the graph is well-formed is to supply
 both an input list and an output list to each job
-and run the whole of it using an automatic mocking.
-
-.. code:
+and run the whole of it using an automatic mocking::
 
     $ python location_app.py --mock
 
