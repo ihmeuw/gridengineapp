@@ -8,7 +8,7 @@ The Application
 
 We are going to build a graph of Jobs, where a Job is a class that holds
 code to run in a UGE job on the cluster. For instance, our code could
-use the locations hierarchy, in which case we build the graph as
+use the locations hierarchy, in which case we would build the graph as
 follows:
 
     import networkx as nx
@@ -27,25 +27,20 @@ follows:
             for row in location_df[location_df.location_id != 1].itertuples()])
         return G
 
-The [Networkx Library](http://networkx.github.io/) is a convenient way
-to build directed acyclic graphs. It has a good [Networkx
+The [NetworkX Library](http://networkx.github.io/) is a convenient way
+to build directed acyclic graphs. It has a good [NetworkX
 Tutorial](https://networkx.github.io/documentation/stable/tutorial.html).
 
 The main code required to use this framework is the Application class.
 It has the following parts:
 
-    class Application:
+    class GridExample:
+        """The class name will be used as the base name for cluster job names."""
         def __init__(self):
             """An init that takes no arguments, because it will be
             called for the children."""
             self.location_set_version_id = None
             self.gbd_round_id = None
-
-        @property
-        def name(self):
-            """A name that will be used to identify this app
-            for Grid Engine jobs. Run and Job ids are appended"""
-            return "location_app"
 
         def add_arguments(parser):
             """The same argument parser is used for both the initial
@@ -94,14 +89,10 @@ The Job Class
 -------------
 
 A Job itself inherits from a base class, `Job`. The most important parts
-of the Job are its run method and outputs. The run method is simple.
-Give it an empty run method:
-
-    def run(self):
-        pass  # Do things.
-
-The class\'s initialization is done by the Application class, so we can
-pass in whatever helps initialize the Job:
+of the Job are its run method and outputs. The run method does the work,
+and the framework uses the list of outputs to check whether the job
+completed. The class\'s initialization is done by the Application class,
+so we can pass in whatever helps initialize the Job:
 
     class LocationJob(Job):
         def __init__(self, location_id, gbd_round_id):
@@ -138,10 +129,12 @@ Finally, at the bottom of the file, under the Application, we put a
 snippet that is the `main()` for the jobs:
 
     if __name__ == "__main__":
-        app = Application()
+        app = GridExample()
         exit(entry(app))
 
-This will be found by the framework.
+This framework looks for this specifically in the same file as the
+application class. If it doesn\'t find one, it will attempt to make its
+own version of a `main()`.
 
 Running
 -------
@@ -170,8 +163,7 @@ skip the real `run()` method and, instead, use the `self.outputs` to
 generate fake files. The `self.inputs` check that the correct fake files
 exist when a Job first starts.
 
-Run on the Cluster
-------------------
+### Run on the Cluster
 
 On the cluster, start the whole thing with the command:
 
@@ -183,8 +175,10 @@ is the application name, and then there are six hexadecimal characters
 that are (probably) unique for this job, and then an identifier for the
 particular location running.
 
-Smaller Run on One Node
------------------------
+The framework looks at each Job\'s run times in order to determine which
+queue to use.
+
+### Smaller Run on One Node
 
 If there is less work to do, it may be easier to run this application
 interactively, using all the cores of a node. In that case, login to a

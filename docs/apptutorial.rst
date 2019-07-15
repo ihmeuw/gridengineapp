@@ -9,7 +9,7 @@ The Application
 
 We are going to build a graph of Jobs, where a Job is a class that
 holds code to run in a UGE job on the cluster. For instance, our
-code could use the locations hierarchy, in which case we build
+code could use the locations hierarchy, in which case we would build
 the graph as follows::
 
     import networkx as nx
@@ -28,9 +28,9 @@ the graph as follows::
             for row in location_df[location_df.location_id != 1].itertuples()])
         return G
 
-The `Networkx Library <http://networkx.github.io/>`_ is a convenient
+The `NetworkX Library <http://networkx.github.io/>`_ is a convenient
 way to build directed acyclic graphs. It has a
-good `Networkx Tutorial <https://networkx.github.io/documentation/stable/tutorial.html>`_.
+good `NetworkX Tutorial <https://networkx.github.io/documentation/stable/tutorial.html>`_.
 
 
 The main code required to use this framework is the Application
@@ -93,12 +93,9 @@ The Job Class
 
 A Job itself inherits from a base class, ``Job``.
 The most important parts of the Job are its
-run method and outputs. The run method is simple.
-Give it an empty run method::
-
-    def run(self):
-        pass  # Do things.
-
+run method and outputs. The run method does the work,
+and the framework uses the list of outputs to check whether
+the job completed.
 The class's initialization is done by the Application class,
 so we can pass in whatever helps initialize the Job::
 
@@ -143,7 +140,9 @@ we put a snippet that is the ``main()`` for the jobs::
         app = GridExample()
         exit(entry(app))
 
-This will be found by the framework.
+This framework looks for this specifically in the same
+file as the application class. If it doesn't find one,
+it will attempt to make its own version of a ``main()``.
 
 
 Running
@@ -191,6 +190,9 @@ will all have the same name, something like
 name, and then there are six hexadecimal characters that
 are (probably) unique for this job, and then an identifier
 for the particular location running.
+
+The framework looks at each Job's run times in order to
+determine which queue to use.
 
 
 Smaller Run on One Node
