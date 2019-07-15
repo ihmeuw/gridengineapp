@@ -6,6 +6,9 @@ from secrets import token_hex
 import pytest
 
 from pygrid import entry, check_complete
+from pygrid.application import check_application
+from pygrid.tests.cascade_app import CascadeIsh
+from pygrid.tests.task_app import Singleton
 
 
 @pytest.fixture
@@ -67,3 +70,13 @@ def test_drop_into_pdb(example_module, tmp_path, caplog):
         entry(app, args)
         assert "Not invoking pdb" in caplog.text
     # else you don't want to interactively debug this way.
+
+
+def test_task_app_create():
+    app = Singleton()
+    check_application(app)
+
+
+def test_cascade_app_create():
+    app = CascadeIsh()
+    check_application(app)

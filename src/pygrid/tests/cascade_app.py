@@ -40,7 +40,8 @@ class CascadeIsh:
     def initialize(self, args):
         self.base_directory = args.base_directory
 
-    def add_arguments(self, parser):
+    @staticmethod
+    def add_arguments(parser):
         parser.add_argument(
             "--base-directory", type=Path,
             default=Path(".")
@@ -48,12 +49,13 @@ class CascadeIsh:
         parser.add_argument(
             "--location-id", type=int
         )
-        parser.add_arugment(
+        parser.add_argument(
             "--sex", type=str
         )
         return parser
 
-    def job_id_to_arguments(self, job_id):
+    @staticmethod
+    def job_id_to_arguments(job_id):
         return [
             "--location-id", str(job_id[0]),
             "--sex", job_id[1]
@@ -68,6 +70,13 @@ class CascadeIsh:
             return self.job_graph().nodes
 
     def job_graph(self):
+        """
+        Use a tuple as the key in the job graph.
+        The tuple is (location_id, sex), where location_id
+        is an integer and sex is a string: male, female, or both.
+        """
+        # This graph, that NetworkX makes, has integer
+        # nodes, starting from 0.
         locations = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
         jobs = nx.DiGraph()
         globe = (1, "both")
@@ -76,6 +85,7 @@ class CascadeIsh:
             loc_begin, loc_end = (1 + zero_begin, 1 + zero_end)
             for sex in ["male", "female"]:
                 if loc_begin == 1:
+                    # Split sex below global.
                     jobs.add_edge(globe, (loc_end, sex))
                 else:
                     jobs.add_edge((loc_begin, sex), (loc_end, sex))
@@ -96,5 +106,8 @@ class CascadeIsh:
             return LocationSexJob(location_id, sex, self.base_directory)
 
 
+# This entry point is something that the framework
+# will look for. It will use python -m pygrid.tests.cascade_app
+# to launch the child jobs.
 if __name__ == "__main__":
     exit(entry(CascadeIsh()))
