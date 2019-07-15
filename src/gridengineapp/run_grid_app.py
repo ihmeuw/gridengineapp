@@ -65,7 +65,8 @@ def sanitize_id(job_id_string):
     return re.sub(r"[ ,\-]+", "_", recognized)
 
 
-def configure_qsub(name, job_id, resources, holds, args):
+def configure_qsub(name, job_id, job, holds, args):
+    resources = job.resources
     template = QsubTemplate()
     template.N = f"{name}_{sanitize_id(str(job_id))}"
     template.l = dict(
@@ -83,7 +84,7 @@ def configure_qsub(name, job_id, resources, holds, args):
         template.P = configuration()["project"]
     template.q = [choose_queue(resources["run_time_minutes"])]
     template.b = "y"
-    return template
+    return job.configure_qsub(template)
 
 
 def launch_jobs(app, args, arg_list, args_to_remove):
@@ -109,7 +110,7 @@ def launch_jobs(app, args, arg_list, args_to_remove):
             if not ("launch" in data and data["launch"]):
                 holds.append(grid_id[source])
         template = configure_qsub(
-            job_name, job_id, app.job(job_id).resources, holds, args
+            job_name, job_id, app.job(job_id), holds, args
         )
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id

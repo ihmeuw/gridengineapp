@@ -11,6 +11,23 @@ class Job:
             run_time_minutes=1,
         )
 
+    def configure_qsub(self, template):
+        """Given fully-configured qsub template,
+        give the job a chance to modify it.
+        For example, you could add::
+
+            template["l"]["archive"] = "TRUE"
+
+        Args:
+            template (Dict): This dictionary describes
+                arguments to qsub. They will be parsed by
+                gridengineapp.submit.template_to_args.
+
+        Returns:
+            Dict: The same dictionary with modifications.
+        """
+        return template
+
     @property
     def inputs(self):
         return self._inputs
