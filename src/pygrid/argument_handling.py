@@ -23,8 +23,10 @@ def setup_args_for_job(args_to_remove, job_args, arg_list=None):
     """
     if arg_list is None:
         arg_list = sys.argv[1:]
+    else:
+        arg_list = [str(any_arg) for any_arg in arg_list]
     job_flags = [str(job_arg) for job_arg in job_args
-                 if job_arg.startswith("--")]
+                 if str(job_arg).startswith("--")]
     args_to_remove.update({id_flag: True for id_flag in job_flags})
     for dash_flag, has_argument in args_to_remove.items():
         for arg_idx, check_arg in enumerate(arg_list):

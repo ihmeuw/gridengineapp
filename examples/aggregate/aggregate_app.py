@@ -57,6 +57,7 @@ class PAFApplication:
     def initialize(self, args):
         if args.base_directory is not None:
             self.base_directory = args.base_directory
+        self.base_directory.mkdir(parents=True, exist_ok=True)
         self.cause_cnt = args.cause_cnt
 
     @staticmethod

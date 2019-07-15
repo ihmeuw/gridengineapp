@@ -113,3 +113,5 @@ def launch_jobs(app, args, arg_list, args_to_remove):
         )
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id
+    LOGGER.debug(f"Launched {', '.join(grid_id.values())}")
+    return grid_id

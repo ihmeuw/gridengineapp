@@ -85,7 +85,7 @@ class GridEngineReturnCodes(Enum):
     These are return codes that Grid Engine recognizes.
     Any other return codes are treated as OK. If you don't
     return 100, then it will try to run the next job that's holding
-    for this job.
+    for this job. "man sge_diagnostics" to see more.
     """
     OK = 0
     RequestRestart = 99

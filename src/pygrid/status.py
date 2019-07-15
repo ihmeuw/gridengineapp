@@ -305,9 +305,9 @@ def qstat_short(effective_user=None):
 
 
 STATECHART = dict(
-    initial=dict(timeout=60, failure=True),
-    engine=dict(timeout=600, failure=False),
-    done=dict(timeout=0, failure=True),
+    initial=dict(timeout=60),
+    engine=dict(timeout=600),
+    done=dict(timeout=0),
 )
 """
 Only care about three states, the initial submission,
