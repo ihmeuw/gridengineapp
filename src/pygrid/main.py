@@ -7,12 +7,12 @@ from types import SimpleNamespace
 
 import networkx as nx
 
-from pygrid.argument_handling import (
+from .argument_handling import (
     setup_args_for_job, execution_parser
 )
-from pygrid.determine_executable import subprocess_executable
-from pygrid.graph_choice import job_subset, execution_ordered
-from pygrid.run_grid_app import launch_jobs
+from .determine_executable import subprocess_executable
+from .graph_choice import job_subset, execution_ordered
+from .run_grid_app import launch_jobs
 from .exceptions import NodeMisconfigurationError
 from .multiprocess import graph_do
 from .restart import restart_count
@@ -59,7 +59,8 @@ def multiprocess_jobs(app, args, arg_list, args_to_remove):
         job_descriptions = dict()
         for job_id in runnable:
             python_executable, argv0 = subprocess_executable(app)
-            args = setup_args_for_job(args_to_remove, job_id, arg_list)
+            job_select = app.job_id_to_arguments(job_id)
+            args = setup_args_for_job(args_to_remove, job_select, arg_list)
             job = app.job(job_id)
             job_descriptions[job_id] = SimpleNamespace(
                 memory=job.resources["memory_gigabytes"],

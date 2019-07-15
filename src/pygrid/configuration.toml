@@ -4,6 +4,7 @@ qsub-timeout-seconds = 60
 qconf-timeout-seconds = 60
 qdel-timeout-seconds = 60
 on-failure-timeout-seconds = 300
+qstat-long-job-names = 200
 real-failure-messages = [
     "invalid",
     "rejected",

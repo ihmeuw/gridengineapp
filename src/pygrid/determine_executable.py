@@ -2,13 +2,12 @@ import logging
 import sys
 from ast import parse, If
 from hashlib import sha224
-from importlib import import_module
 from inspect import isclass, getmodule, getsource
 from os import linesep
 from pathlib import Path
 from textwrap import dedent
 
-from pygrid.config import shell_directory
+from .config import shell_directory
 
 LOGGER = logging.getLogger(__name__)
 

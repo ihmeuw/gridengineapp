@@ -1,7 +1,8 @@
-from pathlib import Path
-from os import environ
-from pygrid.config import configuration
 from getpass import getuser
+from os import environ
+from pathlib import Path
+
+from .config import configuration
 
 
 def restart_count():

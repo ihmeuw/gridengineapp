@@ -4,7 +4,7 @@ from secrets import token_hex
 from textwrap import fill
 
 
-def setup_args_for_job(args_to_remove, job_id, arg_list=None):
+def setup_args_for_job(args_to_remove, job_args, arg_list=None):
     """
     Pass input arguments to the jobs, except for those
     that configure grid engine calls.
@@ -12,7 +12,8 @@ def setup_args_for_job(args_to_remove, job_id, arg_list=None):
     Args:
         args_to_remove (Dict[str,bool]): Map from flag, with
             double-dashes, to whether it has an argument.
-        job_id: An identifier.
+        job_args (List[str]): Flags to add to command line to specify
+            this particular job.
         arg_list (List[str]): This is sys.argv[1:], but it's
             here only for debugging.
 
@@ -22,8 +23,7 @@ def setup_args_for_job(args_to_remove, job_id, arg_list=None):
     """
     if arg_list is None:
         arg_list = sys.argv[1:]
-    job_args = job_id.arguments
-    job_flags = [job_arg for job_arg in job_args
+    job_flags = [str(job_arg) for job_arg in job_args
                  if job_arg.startswith("--")]
     args_to_remove.update({id_flag: True for id_flag in job_flags})
     for dash_flag, has_argument in args_to_remove.items():

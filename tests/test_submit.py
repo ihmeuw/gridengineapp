@@ -54,7 +54,9 @@ def qsub_template():
 
 
 @pytest.mark.parametrize("queue_idx", [0, 1, 2])
-def test_live_qsub(fair, qsub_template, queue_idx):
+def test_live_qsub(
+        fair, shared_cluster_tmp, qsub_template, queue_idx
+):
     """Test the basic submission.
     This is basically all we will use from qsub.
     Note that it tests the project and queue.
@@ -68,12 +70,10 @@ def test_live_qsub(fair, qsub_template, queue_idx):
         return
     job_name = "echo_test"
     qsub_template["N"] = job_name
-    out_path = Path().cwd() / "live_qsub.out"
-    if out_path.exists():
-        out_path.unlink()
+    out_path = shared_cluster_tmp / f"live_qsub{queue_idx}.out"
     qsub_template["o"] = out_path
     job_id = qsub(qsub_template, ["/bin/echo", "borlaug"])
-    print(f"job_id {job_id}")
+    print(f"Using out path {out_path} and job_id {job_id}")
 
     def this_job(job):
         return job.job_id == job_id

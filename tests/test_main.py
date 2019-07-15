@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
 from textwrap import dedent
-from time import sleep, time
+from time import sleep
 
 import networkx as nx
 import pytest
@@ -31,8 +31,7 @@ LOGGER = getLogger(__name__)
 ])
 def test_args_for_int_job(to_remove, arglist, expected):
     """For jobs within a qsub, arguments are stripped."""
-    job_id = IntegerIdentifier(7)
-    result = setup_args_for_job(to_remove, job_id, arglist)
+    result = setup_args_for_job(to_remove, ["--job-id", "7"], arglist)
     assert result == expected
 
 
@@ -64,7 +63,7 @@ class LocationJob(Job):
         super().__init__()
         self.location_id = location_id
         out_file = base_directory / f"data/{location_id}.hdf"
-        self.outputs.append(FileEntity(out_file))
+        self.outputs["out"] = FileEntity(out_file)
 
     @property
     def identifier(self):

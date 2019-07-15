@@ -2,12 +2,12 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from functools import lru_cache
 from logging import getLogger
-from os import linesep
-from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
+from os import linesep, environ
 from textwrap import indent
 from time import time, sleep
 
-from pygrid.config import configuration
+from .config import configuration
+from .process import run_check
 
 LOGGER = getLogger(__name__)
 
@@ -29,24 +29,11 @@ def qstat_request(effective_user=None, job_list=None):
     args.extend(["-u", str(effective_user)] if effective_user else [])
     if job_list:
         args.extend(["-j", str(job_list)])
-    qstat_timeout = configuration()["qstat-timeout-seconds"]
-    try:
-        # qstat run under the shell doesn't return XML.
-        qstat_path = run("which qstat", shell=True, stdout=PIPE,
-                         universal_newlines=True).stdout.strip()
-        LOGGER.debug(f"qstat {args}")
-        qstat_result = run(
-            [qstat_path] + args, shell=False, universal_newlines=True,
-            stdout=PIPE, stderr=PIPE, timeout=qstat_timeout, check=True
-        )
-    except CalledProcessError as cpe:
-        LOGGER.info(f"qstat call {cpe.cmd} failed: {cpe.stderr}")
-        # Qstat can fail, and that's OK. We'll try again later.
-        return None
-    except TimeoutExpired:
-        LOGGER.info(f"qstat timed out after {qstat_timeout}s")
-        return None
-    return qstat_result.stdout
+    qstat_config = configuration()
+    qstat_timeout = qstat_config["qstat-timeout-seconds"]
+    custom_env = environ.copy()
+    custom_env["SGE_LONG_JOB_NAMES"] = qstat_config["qstat-long-job-names"]
+    return run_check("qstat", args)
 
 
 @lru_cache(maxsize=1)

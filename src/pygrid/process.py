@@ -1,6 +1,7 @@
 from enum import Enum
 from functools import lru_cache
 from logging import getLogger
+from os import environ
 from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
 from time import sleep
 
@@ -90,6 +91,10 @@ def run_check(executable, arguments):
         timeout = 60
         timeout_failure = 600
 
+    custom_env = environ.copy()
+    # Qstat can cut off job names, and sometimes they help to parse jobs.
+    custom_env["SGE_LONG_JOB_NAMES"] = str(parameters["qstat-long-job-names"])
+
     # This loop just keeps trying. We will kill it with qdel, if that's
     # what we need.
     while True:
@@ -99,7 +104,7 @@ def run_check(executable, arguments):
             process_out = run(
                 [str(arg) for arg in [executable_path] + arguments],
                 shell=False, universal_newlines=True, stdout=PIPE, stderr=PIPE,
-                timeout=timeout, check=True
+                timeout=timeout, check=True, env=custom_env,
             )
             return process_out.stdout.strip()
         except CalledProcessError as cpe:

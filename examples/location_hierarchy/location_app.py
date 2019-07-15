@@ -4,7 +4,7 @@ from pathlib import Path
 
 import networkx as nx
 
-from pygrid import Job, FileEntity, IntegerIdentifier, entry
+from pygrid import Job, FileEntity, entry
 
 LOGGER = getLogger(__name__)
 
@@ -14,21 +14,13 @@ class LocationJob(Job):
         super().__init__()
         self.location_id = location_id
         out_file = base_directory / f"data/{location_id}.hdf"
-        self.outputs.append(FileEntity(out_file))
+        self.outputs["out"] = FileEntity(out_file)
         self.please_fail = please_fail
-
-    @property
-    def identifier(self):
-        return IntegerIdentifier(self.location_id)
 
     def run(self):
         LOGGER.info(f"Running job {self.location_id}")
         assert not self.please_fail
         self.mock_run()
-
-    def done(self):
-        errors = [output.validate() for output in self.outputs]
-        return not errors
 
 
 class Application:
@@ -41,7 +33,13 @@ class Application:
     def name(self):
         return "location_app"
 
-    def add_arguments(self, parser=None):
+    def initialize(self, args):
+        if args.base_directory is not None:
+            self.base_directory = args.base_directory
+        self.fail_for = args.fail_for
+
+    @staticmethod
+    def add_arguments(parser=None):
         if parser is None:
             parser = ArgumentParser()
         parser.add_argument("--max-level", type=int)
@@ -56,32 +54,26 @@ class Application:
                 and it will drop into the debugger.
             """,
         )
-        IntegerIdentifier.add_arguments(parser)
+        parser.add_argument("--job-id", type=int, help="The job ID")
         return parser
 
-    def initialize(self, args):
-        if args.base_directory is not None:
-            self.base_directory = args.base_directory
-        self.fail_for = args.fail_for
-
-    def job_graph(self):
-        locations = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
-        job_graph = nx.DiGraph()
-        job_graph.add_edges_from(
-            (IntegerIdentifier(u), IntegerIdentifier(v))
-            for (u, v) in locations.edges
-        )
-        return job_graph
-
-    def job(self, identifier):
-        please_fail = int(identifier) == self.fail_for
-        return LocationJob(int(identifier), self.base_directory, please_fail)
+    @staticmethod
+    def job_id_to_arguments(job_id):
+        return ["--job-id", str(job_id)]
 
     def job_identifiers(self, args):
         if hasattr(args, "job_id") and isinstance(args.job_id, int):
-            return [IntegerIdentifier(args.job_id)]
+            return [args.job_id]
         else:
             return self.job_graph().nodes
+
+    def job_graph(self):
+        locations = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
+        return locations
+
+    def job(self, identifier):
+        please_fail = identifier == self.fail_for
+        return LocationJob(identifier, self.base_directory, please_fail)
 
 
 if __name__ == "__main__":

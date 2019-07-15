@@ -1,13 +1,13 @@
 import logging
 import re
 
-from pygrid import qsub
-from pygrid.argument_handling import setup_args_for_job
-from pygrid.config import configuration
-from pygrid.determine_executable import executable_for_job
-from pygrid.graph_choice import job_subset, execution_ordered
-from pygrid.qsub_template import QsubTemplate
-from pygrid.submit import max_run_minutes_on_queue
+from .argument_handling import setup_args_for_job
+from .config import configuration
+from .determine_executable import executable_for_job
+from .graph_choice import job_subset, execution_ordered
+from .qsub_template import QsubTemplate
+from .submit import max_run_minutes_on_queue
+from .submit import qsub
 
 LOGGER = logging.getLogger(__name__)
 
@@ -20,7 +20,8 @@ def run_job_under_no_profile(app, arg_list, args_to_remove, job_id):
     it makes the work much more likely to run for another user.
     """
     script = executable_for_job(app)
-    args = setup_args_for_job(args_to_remove, job_id, arg_list)
+    job_select = app.job_id_to_arguments(job_id)
+    args = setup_args_for_job(args_to_remove, job_select, arg_list)
     return ["/bin/bash", "--noprofile", "--norc", script] + args
 
 
