@@ -84,6 +84,9 @@ def configure_qsub(name, job_id, job, holds, args):
         template.P = configuration()["project"]
     template.q = [choose_queue(resources["run_time_minutes"])]
     template.b = "y"
+    # Task arrays
+    if "task_cnt" in resources and int(resources["task_cnt"]) > 1:
+        template.t = f"1-{resources['task_cnt']}"
     return job.configure_qsub(template)
 
 
