@@ -49,37 +49,84 @@ def run_jobs(app, args):
             raise
 
 
-def multiprocess_jobs(app, args, arg_list, args_to_remove):
-    job_graph = job_subset(app, args)
+def job_task_cnt(app, job_id):
+    job = app.job(job_id)
+    if "task_cnt" in job.resources and int(job.resources["task_cnt"]) > 1:
+        return int(job.resources["task_cnt"])
+    else:
+        return 1
 
-    def run_next(completed_jobs):
-        keep = [job for job in job_graph.nodes
+
+def expand_task_arrays(job_graph, app):
+    # Pull out the task counts.
+    task_cnt = dict()
+    for job_id in job_graph.nodes:
+        task_cnt[job_id] = job_task_cnt(app, job_id)
+
+    task_graph = nx.DiGraph()
+    for job_id in nx.topological_sort(task_graph):
+        task_predecessors = list()
+        for job_pred in job_graph.predecessors(job_id):
+            for pred_idx in range(task_cnt[job_pred]):
+                task_predecessors.append((job_pred, pred_idx))
+        task_graph.add_edges_from(
+            (task_pred, (job_id, task_job))
+            for task_pred in task_predecessors
+            for task_job in range(task_cnt[job_id])
+        )
+    return task_graph
+
+
+def find_runnable(remaining):
+    runnable = list()
+    for remain_job in execution_ordered(remaining):
+        has_dependencies = False
+        for _u, _v, data in remaining.in_edges(remain_job, data=True):
+            # Don't count this particular edge as a dependency.
+            if not ("launch" in data and data["launch"]):
+                has_dependencies = True
+        if not has_dependencies:
+            runnable.append(remain_job)
+    return runnable
+
+
+class RunNext:
+    def __init__(self, app, task_graph, arg_list, args_to_remove):
+        self.app = app
+        self.task_graph = task_graph
+        self.arg_list = arg_list
+        self.args_to_remove = args_to_remove
+
+    def __call__(self, completed_jobs):
+        """This is a functor, not a class."""
+        keep = [job for job in self.task_graph.nodes
                 if job not in completed_jobs]
-        remaining = nx.subgraph(job_graph, keep)
-        runnable = list()
+        remaining = nx.subgraph(self.task_graph, keep)
+        runnable = find_runnable(remaining)
+        return self.construct_descriptions(runnable)
 
-        for remain_job in execution_ordered(remaining):
-            has_dependencies = False
-            for _u, _v, data in remaining.in_edges(remain_job, data=True):
-                # Don't count this particular edge as a dependency.
-                if not ("launch" in data and data["launch"]):
-                    has_dependencies = True
-            if not has_dependencies:
-                runnable.append(remain_job)
-
+    def construct_descriptions(self, runnable):
         job_descriptions = dict()
-        for job_id in runnable:
-            python_executable, argv0 = subprocess_executable(app)
-            job_select = app.job_id_to_arguments(job_id)
-            args = setup_args_for_job(args_to_remove, job_select, arg_list)
-            job = app.job(job_id)
-            job_descriptions[job_id] = SimpleNamespace(
+        for job_id, task_id in runnable:
+            python_executable, argv0 = subprocess_executable(self.app)
+            job_select = self.app.job_id_to_arguments(job_id)
+            args = setup_args_for_job(
+                self.args_to_remove, job_select, self.arg_list)
+            if task_id > 0:
+                args.extend(["--task-idx", str(task_id)])
+            job = self.app.job(job_id)
+            job_descriptions[(job_id, task_id)] = SimpleNamespace(
                 memory=job.resources["memory_gigabytes"],
                 args=[str(python_executable)] + argv0 + args,
             )
         return job_descriptions
 
-    graph_do(run_next, args.memory_limit)
+
+def multiprocess_jobs(app, command_args, arg_list, args_to_remove):
+    job_graph = job_subset(app, command_args)
+    task_graph = expand_task_arrays(job_graph, app)
+    run_next = RunNext(app, task_graph, arg_list, args_to_remove)
+    graph_do(run_next, command_args.memory_limit)
 
 
 class GridEngineReturnCodes(Enum):
