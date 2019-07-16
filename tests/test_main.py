@@ -1,11 +1,9 @@
-import subprocess
-import sys
 from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
-from textwrap import dedent
-from time import sleep
 from secrets import token_hex
+from time import sleep
+from types import SimpleNamespace
 
 import networkx as nx
 import pytest
@@ -15,6 +13,7 @@ from gridengineapp import (
 )
 from gridengineapp.argument_handling import setup_args_for_job
 from gridengineapp.graph_choice import jobs_not_done
+from gridengineapp.main import job_task_cnt
 
 LOGGER = getLogger(__name__)
 
@@ -198,3 +197,17 @@ def test_remote_continue_jobs(fair, shared_cluster_tmp):
     assert data0.stat().st_mtime == mtime
     # But all of the jobs are done.
     assert len(list(data.glob("*.hdf"))) == 13
+
+
+def test_job_task_cnt_none():
+    job = Job()
+    assert job_task_cnt(job) == 1
+
+
+def test_job_task_cnt_with_tasks():
+    job = SimpleNamespace(resources=dict(task_cnt=12))
+    assert job_task_cnt(job) == 12
+
+
+def test_expand_task_arrays_happy():
+    graph

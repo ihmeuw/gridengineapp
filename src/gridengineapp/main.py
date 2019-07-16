@@ -49,8 +49,7 @@ def run_jobs(app, args):
             raise
 
 
-def job_task_cnt(app, job_id):
-    job = app.job(job_id)
+def job_task_cnt(job):
     if "task_cnt" in job.resources and int(job.resources["task_cnt"]) > 1:
         return int(job.resources["task_cnt"])
     else:
@@ -61,18 +60,18 @@ def expand_task_arrays(job_graph, app):
     # Pull out the task counts.
     task_cnt = dict()
     for job_id in job_graph.nodes:
-        task_cnt[job_id] = job_task_cnt(app, job_id)
+        task_cnt[job_id] = job_task_cnt(app.job(job_id))
 
     task_graph = nx.DiGraph()
     for job_id in nx.topological_sort(task_graph):
         task_predecessors = list()
         for job_pred in job_graph.predecessors(job_id):
-            for pred_idx in range(task_cnt[job_pred]):
+            for pred_idx in range(1, 1 + task_cnt[job_pred]):
                 task_predecessors.append((job_pred, pred_idx))
         task_graph.add_edges_from(
             (task_pred, (job_id, task_job))
             for task_pred in task_predecessors
-            for task_job in range(task_cnt[job_id])
+            for task_job in range(1, 1 + task_cnt[job_id])
         )
     return task_graph
 
@@ -112,8 +111,8 @@ class RunNext:
             job_select = self.app.job_id_to_arguments(job_id)
             args = setup_args_for_job(
                 self.args_to_remove, job_select, self.arg_list)
-            if task_id > 0:
-                args.extend(["--task-idx", str(task_id)])
+            if task_id > 1:
+                args.extend(["--task-id", str(task_id)])
             job = self.app.job(job_id)
             job_descriptions[(job_id, task_id)] = SimpleNamespace(
                 memory=job.resources["memory_gigabytes"],
