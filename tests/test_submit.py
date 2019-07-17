@@ -48,7 +48,7 @@ def qsub_template():
             archive=True,
         ),
         P=settings["project"],
-        q=settings["queues"][0],
+        q=settings["queues"].split()[0],
     )
     return template
 
@@ -63,36 +63,45 @@ def test_live_qsub(
     """
     qsub_template["b"] = "y"
     settings = configuration()
-    queues = settings["queues"]
+    queues = settings["queues"].split()
     if queue_idx < len(queues):
         qsub_template["q"] = queues[queue_idx]
     else:
         return
     job_name = "echo_test"
     qsub_template["N"] = job_name
-    out_path = shared_cluster_tmp / f"live_qsub{queue_idx}.out"
-    qsub_template["o"] = out_path
+    log_path = shared_cluster_tmp / f"live_qsub{queue_idx}.out"
+    qsub_template["o"] = log_path
     job_id = qsub(qsub_template, ["/bin/echo", "borlaug"])
-    print(f"Using out path {out_path} and job_id {job_id}")
+    print(f"Using out path {log_path} and job_id {job_id}")
 
     def this_job(job):
         return job.job_id == job_id
 
     def check_done():
-        return out_path.exists()
+        return log_path.exists()
 
     try:
-        ran_to_completion = check_complete(this_job, check_done)
+        check_complete(this_job, check_done)
     except TimeoutError as te:
         if te.args[1] == "engine":
             return  # That's OK. It means the queue was slow.
         else:
             assert False, f"timeout for state {te.args[1]}"
 
-    if ran_to_completion:
-        if not out_path.exists():
-            sleep(20)
-        with out_path.open() as istream:
-            contents = istream.read()
-        assert "borlaug" in contents
-        out_path.unlink()
+    # Lesson learned here: It's better to try to read the file
+    # and fail than to ask whether it exists. Apparently the former
+    # will succeed sooner on this filesystem.
+    start = time()
+    slowest_filesystem_metadata_ever = 120
+    while time() - start < slowest_filesystem_metadata_ever:
+        try:
+            dir_list = list(f.name for f in log_path.parent.glob("*"))
+            print(f"Looking for {log_path}. Find {dir_list}")
+            with log_path.open() as istream:
+                contents = istream.read()
+            assert "borlaug" in contents
+            return
+        except FileNotFoundError:
+            sleep(2)
+    raise AssertionError(f"The file never showed up {log_path}")

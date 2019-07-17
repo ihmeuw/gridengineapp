@@ -1,5 +1,6 @@
 import sys
 from argparse import ArgumentParser
+from os import environ
 from secrets import token_hex
 from textwrap import fill
 
@@ -69,6 +70,21 @@ def execution_parser():
         name in order to make it easier to use qstat, qdel, and such.
         """)
     )
+    try:
+        # The task id can be the string "undefined"
+        task_id = int(environ.get("SGE_TASK_ID", "0"))
+    except ValueError:
+        task_id = 0
+    grid.add_argument(
+        "--task-id", type=int,
+        default=task_id,
+        help=fill("""
+        The Grid Engine SGE_TASK_ID value for this task.
+        If this isn't a task array, the task_id is 0.
+        This is a 1-based value for task arrays.
+        """)
+    )
+    remove_for_jobs["--task-id"] = True
 
     multiprocess = parser.add_argument_group(
         "Multiprocess",

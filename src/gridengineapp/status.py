@@ -30,7 +30,6 @@ def qstat_request(effective_user=None, job_list=None):
     if job_list:
         args.extend(["-j", str(job_list)])
     qstat_config = configuration()
-    qstat_timeout = qstat_config["qstat-timeout-seconds"]
     custom_env = environ.copy()
     custom_env["SGE_LONG_JOB_NAMES"] = qstat_config["qstat-long-job-names"]
     return run_check("qstat", args)
@@ -332,7 +331,7 @@ def check_complete(identify_job, check_done, timeout=60*60):
             calling the job lost.
 
     Returns:
-        bool: False if the job ran over a timeout.
+        None
     """
     state = "initial"
     last = time()
@@ -343,17 +342,18 @@ def check_complete(identify_job, check_done, timeout=60*60):
         my_jobs = qstat_short()
         this_job = [j for j in my_jobs if identify_job(j)]
         if len(this_job) > 0:
+            LOGGER.debug(f"Found jobs {[j.name for j in this_job]}")
             if state == "initial":
                 last = time()
                 state = "engine"
             for check_job in this_job:
                 assert not (check_job.status & dead_to_me)
         elif len(this_job) == 0 and state == "engine":
-            return True
+            LOGGER.debug(f"The job isn't in qstat.")
+            return
         else:
-            pass  # No jobs showing up.
+            LOGGER.debug(f"No jobs showed up after {time() - last}s")
         state_timeout = state_chart[state]["timeout"]
         if time() - last > state_timeout:
             raise TimeoutError(f"Job exceded {state_timeout}.", state)
         sleep(15)
-    return True

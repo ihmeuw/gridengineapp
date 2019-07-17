@@ -1,6 +1,7 @@
 import random
 import subprocess
 from argparse import Namespace
+from pathlib import Path
 
 import pytest
 
@@ -62,6 +63,8 @@ def test_graph_do(monkeypatch):
 
 
 def test_graph_live():
+    if not Path("/bin/echo").exists():
+        return
     to_do = dict()
     for i in range(5):
         to_do[i] = Namespace(memory=1, args=["/bin/echo", "2", "0", "0"])
@@ -74,6 +77,8 @@ def test_graph_live():
 
 
 def test_graph_die():
+    if not Path("/bin/false").exists():
+        return
     to_do = dict()
     for i in range(5):
         to_do[i] = Namespace(memory=1, args=["/bin/false", "1", "7", "0"])

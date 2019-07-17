@@ -119,8 +119,13 @@ class ShelfFile(FileEntity):
             None, on success, or a string on error.
         """
         path = self.path
-        search_name = path.parent / (path.name + ".dat")
-        if not search_name.exists():
+        suffixes = [".dat", ".db"]
+        found = False
+        for suffix in suffixes:
+            search_name = path.parent / (path.name + suffix)
+            if search_name.exists():
+                found = True
+        if not found:
             LOGGER.debug(f"Shelf path doesn't exist {path}")
             return f"Shelf path doesn't exist {path}"
         if self._keys:

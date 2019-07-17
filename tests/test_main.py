@@ -1,11 +1,9 @@
-import subprocess
-import sys
 from argparse import ArgumentParser
 from logging import getLogger
 from pathlib import Path
-from textwrap import dedent
-from time import sleep
 from secrets import token_hex
+from time import sleep
+from types import SimpleNamespace
 
 import networkx as nx
 import pytest
@@ -15,6 +13,7 @@ from gridengineapp import (
 )
 from gridengineapp.argument_handling import setup_args_for_job
 from gridengineapp.graph_choice import jobs_not_done
+from gridengineapp.main import job_task_ids, expand_task_arrays
 
 LOGGER = getLogger(__name__)
 
@@ -198,3 +197,40 @@ def test_remote_continue_jobs(fair, shared_cluster_tmp):
     assert data0.stat().st_mtime == mtime
     # But all of the jobs are done.
     assert len(list(data.glob("*.hdf"))) == 13
+
+
+def test_job_task_cnt_none():
+    job = Job()
+    assert len(list(job_task_ids(job))) == 1
+
+
+def test_job_task_cnt_with_tasks():
+    job = SimpleNamespace(resources=dict(task_cnt=12))
+    assert len(list(job_task_ids(job))) == 12
+
+
+class TaskNotArrayJob(Job):
+    def __init__(self, jid):
+        super().__init__()
+        self.jid = jid
+
+
+def test_expand_task_arrays_happy():
+    """When there are no task arrays, simple transformation"""
+    graph = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
+    app = SimpleNamespace(job=lambda jid: TaskNotArrayJob(jid))
+    task_graph = expand_task_arrays(graph, app)
+    assert len(graph) == len(task_graph)
+    assert len(graph.edges) == len(task_graph.edges)
+    for u, v in graph.edges:
+        assert ((u, 0), (v, 0)) in task_graph.edges
+
+
+def test_expand_task_arrays_tiny():
+    """When there are no task arrays, simple transformation"""
+    graph = nx.DiGraph()
+    graph.add_node(17)
+    app = SimpleNamespace(job=lambda jid: TaskNotArrayJob(jid))
+    task_graph = expand_task_arrays(graph, app)
+    assert len(graph) == len(task_graph)
+    assert len(graph.edges) == len(task_graph.edges)

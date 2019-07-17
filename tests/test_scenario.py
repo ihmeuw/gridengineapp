@@ -124,6 +124,43 @@ def test_aggregate_app_grid(example_module, fair, shared_cluster_tmp):
     assert len(list(tmp_path.glob("*.csv"))) == cause_cnt + 1
 
 
+def test_country_app_functions(example_module, tmp_path):
+    location_module = example_module("single_task_array", "countries")
+    app = location_module.Countries()
+    args = ["--base-directory", str(tmp_path)]
+    entry(app, args)
+    assert len(list(tmp_path.glob("*.hdf"))) == 5
+
+
+def test_country_app_parallel(example_module, tmp_path):
+    location_module = example_module("single_task_array", "countries")
+    app = location_module.Countries()
+    args = ["--base-directory", str(tmp_path),
+            "--memory-limit", "2"]
+    entry(app, args)
+    assert len(list(tmp_path.glob("*.hdf"))) == 5
+
+
+def test_country_app_grid(example_module, fair, shared_cluster_tmp):
+    location_module = example_module("single_task_array", "countries")
+    app = location_module.Countries()
+    unique = token_hex(3)
+    tmp_path = shared_cluster_tmp / "agg_app_grid"
+    args = ["--base-directory", str(tmp_path),
+            "--grid-engine", "--run-id", unique]
+    entry(app, args)
+
+    def identify_job(j):
+        return unique in j.name
+
+    def check_done():
+        return (tmp_path / "d.csv").exists()
+
+    check_complete(identify_job, check_done)
+
+    assert len(list(tmp_path.glob("*.hdf"))) == 5
+
+
 def test_task_app_create():
     app = Singleton()
     check_application(app)

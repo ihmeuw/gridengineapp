@@ -1,7 +1,7 @@
 from enum import Enum
 from functools import lru_cache
 from logging import getLogger
-from os import environ
+from os import environ, linesep
 from subprocess import run, PIPE, TimeoutExpired, CalledProcessError
 from time import sleep
 
@@ -39,14 +39,6 @@ class OKReturnCodes(Enum):
     transaction_rejected_try_again = 25
 
 
-STRINGS_THAT_MEAN_ERROR = [
-    "invalid",
-    "rejected",
-    "required",
-    "unknown command from JSV"
-]
-
-
 def actually_failed(called_process_error):
     """Look at stderr of a qsub job to decide whether it's a real failure.
     Be conservative about quitting b/c this is used in a server process
@@ -59,9 +51,11 @@ def actually_failed(called_process_error):
             LOGGER.info(f"Return code was {ok_code} so try again.")
             return
     actual_errors = configuration()["real-failure-messages"]
-    for really_done in actual_errors:
-        if really_done in str(called_process_error.stderr):
+    # Each line of the string is a separate message.
+    for really_done in actual_errors.strip().split(linesep):
+        if really_done.strip() in str(called_process_error.stderr):
             raise RuntimeError(called_process_error.stderr)
+    LOGGER.warning(f"Qsub returned {called_process_error}. Trying again.")
 
 
 def run_check(executable, arguments):
@@ -85,7 +79,7 @@ def run_check(executable, arguments):
     parameters = configuration()
     if timeout_key in parameters:
         timeout = int(parameters[timeout_key])
-        timeout_failure = parameters["on-failure-timeout-seconds"]
+        timeout_failure = int(parameters["on-failure-timeout-seconds"])
     else:
         LOGGER.info(f"Cannot find key {timeout_key} in GridEngine parameters")
         timeout = 60

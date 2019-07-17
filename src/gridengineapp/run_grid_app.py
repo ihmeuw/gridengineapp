@@ -43,7 +43,7 @@ def choose_queue(run_time_minutes):
     Returns:
         str: The name of the queue to use.
     """
-    queues = configuration()["queues"]
+    queues = configuration()["queues"].split()
     acceptable = list()
     for queue in queues:
         queue_minutes = max_run_minutes_on_queue(queue)
@@ -65,13 +65,25 @@ def sanitize_id(job_id_string):
     return re.sub(r"[ ,\-]+", "_", recognized)
 
 
-def configure_qsub(name, job_id, resources, holds, args):
+def format_memory(mem_gb):
+    if mem_gb < 0.125:
+        mem_gb = 0.125
+    if abs(mem_gb - round(mem_gb)) > 0.01:
+        mem_mb = round(1024 * mem_gb)
+        mem_string = f"{mem_mb}M"
+    else:
+        mem_string = f"{round(mem_gb)}G"
+    return mem_string
+
+
+def configure_qsub(name, job_id, job, holds, args):
+    resources = job.resources
     template = QsubTemplate()
     template.N = f"{name}_{sanitize_id(str(job_id))}"
     template.l = dict(
         h_rt=minutes_to_time(resources["run_time_minutes"]),
         fthread=str(resources["threads"]),
-        m_mem_free=f"{resources['memory_gigabytes']}G"
+        m_mem_free=format_memory(resources["memory_gigabytes"])
     )
     if hasattr(args, "rerun_cnt") and args.rerun_cnt:
         template.r = "y"
@@ -83,7 +95,10 @@ def configure_qsub(name, job_id, resources, holds, args):
         template.P = configuration()["project"]
     template.q = [choose_queue(resources["run_time_minutes"])]
     template.b = "y"
-    return template
+    # Task arrays
+    if "task_cnt" in resources and int(resources["task_cnt"]) > 1:
+        template.t = f"1-{resources['task_cnt']}"
+    return job.configure_qsub(template)
 
 
 def launch_jobs(app, args, arg_list, args_to_remove):
@@ -109,7 +124,7 @@ def launch_jobs(app, args, arg_list, args_to_remove):
             if not ("launch" in data and data["launch"]):
                 holds.append(grid_id[source])
         template = configure_qsub(
-            job_name, job_id, app.job(job_id).resources, holds, args
+            job_name, job_id, app.job(job_id), holds, args
         )
         grid_job_id = qsub(template, job_args)
         grid_id[job_id] = grid_job_id

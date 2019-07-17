@@ -86,19 +86,27 @@ def subprocess_executable(app):
 
 
 def executable_for_job(app):
+    """Decides how to call Python from a script in its environment.
+    It could be a virtualenv or a Conda environment.
+    """
     argv0 = find_or_create_executable(app)
     main_path = " ".join(str(command_arg) for command_arg in argv0)
     environment_base = Path(sys.exec_prefix)
     activate = environment_base / "bin" / "activate"
+    conda = environment_base / "bin" / "conda"
     commands = ["#!/bin/bash"]
+    python = "python"
     if activate.exists():
         commands.append(f"source {activate}")
-    else:
-        conda_sh = environment_base / "etc" / "profile.d" / "conda.sh"
-        if conda_sh.exists():
-            commands.append(f". {conda_sh}")
+    elif conda.exists():
+        # Could do ". base/etc/profile.d/conda.sh" but this is what
+        # miniconda says to do when you install it.
+        commands.append(f'''eval "$({conda} shell.bash hook)"''')
         commands.append(f"conda activate {environment_base}")
-    commands.append(f"python {main_path} $*")
+    else:
+        # Give up on the environment and use the full executable path.
+        python = sys.executable
+    commands.append(f"{python} {main_path} $*")
     commands.append("")
     command_lines = linesep.join(commands)
 
