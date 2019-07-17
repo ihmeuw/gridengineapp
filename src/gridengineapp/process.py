@@ -39,14 +39,6 @@ class OKReturnCodes(Enum):
     transaction_rejected_try_again = 25
 
 
-STRINGS_THAT_MEAN_ERROR = [
-    "invalid",
-    "rejected",
-    "required",
-    "unknown command from JSV"
-]
-
-
 def actually_failed(called_process_error):
     """Look at stderr of a qsub job to decide whether it's a real failure.
     Be conservative about quitting b/c this is used in a server process
@@ -63,6 +55,7 @@ def actually_failed(called_process_error):
     for really_done in actual_errors.strip().split(linesep):
         if really_done.strip() in str(called_process_error.stderr):
             raise RuntimeError(called_process_error.stderr)
+    LOGGER.warning(f"Qsub returned {called_process_error}. Trying again.")
 
 
 def run_check(executable, arguments):

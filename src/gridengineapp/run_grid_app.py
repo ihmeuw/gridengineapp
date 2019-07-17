@@ -70,9 +70,9 @@ def format_memory(mem_gb):
         mem_gb = 0.125
     if abs(mem_gb - round(mem_gb)) > 0.01:
         mem_mb = round(1024 * mem_gb)
-        mem_string = f"{mem_mb}MB"
+        mem_string = f"{mem_mb}M"
     else:
-        mem_string = f"{round(mem_gb)}GB"
+        mem_string = f"{round(mem_gb)}G"
     return mem_string
 
 
