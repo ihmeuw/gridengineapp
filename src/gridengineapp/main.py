@@ -22,15 +22,41 @@ from .restart import restart_count
 LOGGER = logging.getLogger(__name__)
 
 
+def iterate_tasks(job, command_line_task_id):
+    """
+    Walk through tasks to run from a job. If the task_id is nonzero,
+    then limit it to that task_id.
+
+    Args:
+        job (Job): The job object.
+        command_line_task_id (int): A Task ID chosen on the command
+            line. This is how a job learns it should do a particular
+            task. This value is set by ``SGE_TASK_ID`` environment
+            variable, if that's set.
+
+    Returns:
+        A job instance.
+    """
+    if "task_cnt" in job.resources and job.resources["task_cnt"] > 0:
+        if command_line_task_id is not None and command_line_task_id > 0:
+            yield job.clone_task(command_line_task_id)
+        else:
+            for task_id in range(1, 1 + job.resources["task_cnt"]):
+                yield job.clone_task(task_id)
+    else:
+        yield job
+
+
 def run_jobs(app, args):
     faulthandler.enable()
     try:
         job_graph = job_subset(app, args)
         for identifier in execution_ordered(job_graph):
-            if not args.mock_job:
-                app.job(identifier).run()
-            else:
-                app.job(identifier).mock_run()
+            for task in iterate_tasks(app.job(identifier), args.task_id):
+                if not args.mock_job:
+                    task.run()
+                else:
+                    task.mock_run()
 
     except BdbQuit:
         pass
@@ -49,11 +75,12 @@ def run_jobs(app, args):
             raise
 
 
-def job_task_cnt(job):
+def job_task_ids(job):
+    """Yields task IDs. If this isn't an array job, the only ID is 0."""
     if "task_cnt" in job.resources and int(job.resources["task_cnt"]) > 1:
-        return int(job.resources["task_cnt"])
+        yield from range(1, 1 + int(job.resources["task_cnt"]))
     else:
-        return 1
+        yield from [0]
 
 
 def expand_task_arrays(job_graph, app):
@@ -63,24 +90,21 @@ def expand_task_arrays(job_graph, app):
     a job graph is Type, then the node type for a
     task graph is the tuple (Type, task_id)."""
     # Pull out the task counts.
-    task_cnt = dict()
-    for job_id in job_graph.nodes:
-        task_cnt[job_id] = job_task_cnt(app.job(job_id))
-
     task_graph = nx.DiGraph()
     for job_id in nx.topological_sort(job_graph):
+        job = app.job(job_id)
         task_predecessors = list()
         for job_pred in job_graph.predecessors(job_id):
-            for pred_idx in range(1, 1 + task_cnt[job_pred]):
+            for pred_idx in job_task_ids(app.job(job_pred)):
                 task_predecessors.append((job_pred, pred_idx))
         # Add nodes before edges in case there are no edges.
         task_graph.add_nodes_from(
-            (job_id, task_job) for task_job in range(1, 1 + task_cnt[job_id])
+            (job_id, task_job) for task_job in job_task_ids(job)
         )
         task_graph.add_edges_from(
             (task_pred, (job_id, task_job))
             for task_pred in task_predecessors
-            for task_job in range(1, 1 + task_cnt[job_id])
+            for task_job in job_task_ids(job)
         )
     return task_graph
 

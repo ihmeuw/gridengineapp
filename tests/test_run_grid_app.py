@@ -1,7 +1,6 @@
-import networkx as nx
 import pytest
 
-from gridengineapp.run_grid_app import sanitize_id
+from gridengineapp.run_grid_app import sanitize_id, format_memory
 
 
 @pytest.mark.parametrize("input,output", [
@@ -15,3 +14,14 @@ from gridengineapp.run_grid_app import sanitize_id
 ])
 def test_sanitize_id(input, output):
     assert sanitize_id(input) == output
+
+
+@pytest.mark.parametrize("mem_gb,mem_str", [
+    (1, "1GB"),
+    (17, "17GB"),
+    (1.5, "1536MB"),
+    (0, "128MB"),
+    (0.3583984375, "367MB"),
+])
+def test_format_memory(mem_gb, mem_str):
+    assert format_memory(mem_gb) == mem_str

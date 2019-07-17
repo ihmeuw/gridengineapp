@@ -65,6 +65,17 @@ def sanitize_id(job_id_string):
     return re.sub(r"[ ,\-]+", "_", recognized)
 
 
+def format_memory(mem_gb):
+    if mem_gb < 0.125:
+        mem_gb = 0.125
+    if abs(mem_gb - round(mem_gb)) > 0.01:
+        mem_mb = round(1024 * mem_gb)
+        mem_string = f"{mem_mb}MB"
+    else:
+        mem_string = f"{round(mem_gb)}GB"
+    return mem_string
+
+
 def configure_qsub(name, job_id, job, holds, args):
     resources = job.resources
     template = QsubTemplate()
@@ -72,7 +83,7 @@ def configure_qsub(name, job_id, job, holds, args):
     template.l = dict(
         h_rt=minutes_to_time(resources["run_time_minutes"]),
         fthread=str(resources["threads"]),
-        m_mem_free=f"{resources['memory_gigabytes']}G"
+        m_mem_free=format_memory(resources["memory_gigabytes"])
     )
     if hasattr(args, "rerun_cnt") and args.rerun_cnt:
         template.r = "y"

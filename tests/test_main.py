@@ -13,7 +13,7 @@ from gridengineapp import (
 )
 from gridengineapp.argument_handling import setup_args_for_job
 from gridengineapp.graph_choice import jobs_not_done
-from gridengineapp.main import job_task_cnt, expand_task_arrays
+from gridengineapp.main import job_task_ids, expand_task_arrays
 
 LOGGER = getLogger(__name__)
 
@@ -201,12 +201,12 @@ def test_remote_continue_jobs(fair, shared_cluster_tmp):
 
 def test_job_task_cnt_none():
     job = Job()
-    assert job_task_cnt(job) == 1
+    assert len(list(job_task_ids(job))) == 1
 
 
 def test_job_task_cnt_with_tasks():
     job = SimpleNamespace(resources=dict(task_cnt=12))
-    assert job_task_cnt(job) == 12
+    assert len(list(job_task_ids(job))) == 12
 
 
 class TaskNotArrayJob(Job):
@@ -223,7 +223,7 @@ def test_expand_task_arrays_happy():
     assert len(graph) == len(task_graph)
     assert len(graph.edges) == len(task_graph.edges)
     for u, v in graph.edges:
-        assert ((u, 1), (v, 1)) in task_graph.edges
+        assert ((u, 0), (v, 0)) in task_graph.edges
 
 
 def test_expand_task_arrays_tiny():
@@ -234,5 +234,3 @@ def test_expand_task_arrays_tiny():
     task_graph = expand_task_arrays(graph, app)
     assert len(graph) == len(task_graph)
     assert len(graph.edges) == len(task_graph.edges)
-    for u, v in graph.edges:
-        assert ((u, 1), (v, 1)) in task_graph.edges

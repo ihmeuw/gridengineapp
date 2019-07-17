@@ -86,7 +86,7 @@ def run_check(executable, arguments):
     parameters = configuration()
     if timeout_key in parameters:
         timeout = int(parameters[timeout_key])
-        timeout_failure = parameters["on-failure-timeout-seconds"]
+        timeout_failure = int(parameters["on-failure-timeout-seconds"])
     else:
         LOGGER.info(f"Cannot find key {timeout_key} in GridEngine parameters")
         timeout = 60
