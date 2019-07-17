@@ -13,7 +13,7 @@ from gridengineapp import (
 )
 from gridengineapp.argument_handling import setup_args_for_job
 from gridengineapp.graph_choice import jobs_not_done
-from gridengineapp.main import job_task_cnt
+from gridengineapp.main import job_task_cnt, expand_task_arrays
 
 LOGGER = getLogger(__name__)
 
@@ -209,5 +209,30 @@ def test_job_task_cnt_with_tasks():
     assert job_task_cnt(job) == 12
 
 
+class TaskNotArrayJob(Job):
+    def __init__(self, jid):
+        super().__init__()
+        self.jid = jid
+
+
 def test_expand_task_arrays_happy():
-    graph
+    """When there are no task arrays, simple transformation"""
+    graph = nx.balanced_tree(3, 2, create_using=nx.DiGraph)
+    app = SimpleNamespace(job=lambda jid: TaskNotArrayJob(jid))
+    task_graph = expand_task_arrays(graph, app)
+    assert len(graph) == len(task_graph)
+    assert len(graph.edges) == len(task_graph.edges)
+    for u, v in graph.edges:
+        assert ((u, 1), (v, 1)) in task_graph.edges
+
+
+def test_expand_task_arrays_tiny():
+    """When there are no task arrays, simple transformation"""
+    graph = nx.DiGraph()
+    graph.add_node(17)
+    app = SimpleNamespace(job=lambda jid: TaskNotArrayJob(jid))
+    task_graph = expand_task_arrays(graph, app)
+    assert len(graph) == len(task_graph)
+    assert len(graph.edges) == len(task_graph.edges)
+    for u, v in graph.edges:
+        assert ((u, 1), (v, 1)) in task_graph.edges

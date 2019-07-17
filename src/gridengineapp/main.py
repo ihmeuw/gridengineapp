@@ -57,17 +57,26 @@ def job_task_cnt(job):
 
 
 def expand_task_arrays(job_graph, app):
+    """Take a job graph and expand the jobs into tasks.
+    Every job has at least one task. Jobs that are task
+    arrays can have more tasks. If the node type for
+    a job graph is Type, then the node type for a
+    task graph is the tuple (Type, task_id)."""
     # Pull out the task counts.
     task_cnt = dict()
     for job_id in job_graph.nodes:
         task_cnt[job_id] = job_task_cnt(app.job(job_id))
 
     task_graph = nx.DiGraph()
-    for job_id in nx.topological_sort(task_graph):
+    for job_id in nx.topological_sort(job_graph):
         task_predecessors = list()
         for job_pred in job_graph.predecessors(job_id):
             for pred_idx in range(1, 1 + task_cnt[job_pred]):
                 task_predecessors.append((job_pred, pred_idx))
+        # Add nodes before edges in case there are no edges.
+        task_graph.add_nodes_from(
+            (job_id, task_job) for task_job in range(1, 1 + task_cnt[job_id])
+        )
         task_graph.add_edges_from(
             (task_pred, (job_id, task_job))
             for task_pred in task_predecessors
@@ -111,7 +120,7 @@ class RunNext:
             job_select = self.app.job_id_to_arguments(job_id)
             args = setup_args_for_job(
                 self.args_to_remove, job_select, self.arg_list)
-            if task_id > 1:
+            if task_id > 0:
                 args.extend(["--task-id", str(task_id)])
             job = self.app.job(job_id)
             job_descriptions[(job_id, task_id)] = SimpleNamespace(
@@ -124,6 +133,7 @@ class RunNext:
 def multiprocess_jobs(app, command_args, arg_list, args_to_remove):
     job_graph = job_subset(app, command_args)
     task_graph = expand_task_arrays(job_graph, app)
+    LOGGER.debug(f"{len(task_graph)} tasks to run")
     run_next = RunNext(app, task_graph, arg_list, args_to_remove)
     graph_do(run_next, command_args.memory_limit)
 
@@ -149,34 +159,12 @@ def configure_from_application(app):
         configuration(app.configuration())
 
 
-def entry(app, arg_list=None):
-    """
-    This starts the application. Use it with::
-
-        if __name__ == "__main__":
-            application = MyApplication()
-            entry(application)
-
-    Args:
-        app (application.Application): The main application to run.
-        arg_list (Namespace|SimpleNamespace): Arguments to the command line.
-            This is usually None and is used for testing.
-    """
-    configure_from_application(app)
-    parser, args_to_remove = execution_parser()
-    app.add_arguments(parser)
-    args = parser.parse_args(arg_list)
-    offset = 10 * (args.quiet_app - args.verbose_app)
-    logging.basicConfig(level=logging.INFO + offset)
+def grid_child_guard(work, args):
+    """Runs Python so that its return codes match those described
+    in sge_diagnostics, to demand failure or restart."""
     restart_cnt = restart_count()
     try:
-        app.initialize(args)
-        if args.grid_engine:
-            launch_jobs(app, args, arg_list, args_to_remove)
-        elif args.memory_limit:
-            multiprocess_jobs(app, args, arg_list, args_to_remove)
-        else:
-            run_jobs(app, args)
+        work()
     except NodeMisconfigurationError as nme:
         LOGGER.exception(nme)
         if (
@@ -191,3 +179,37 @@ def entry(app, arg_list=None):
         LOGGER.exception(exc)
         return GridEngineReturnCodes.FailAndDeleteHoldingJobs.value
     return GridEngineReturnCodes.OK.value
+
+
+def entry(app, arg_list=None):
+    """
+    This starts the application. Use it with::
+
+        if __name__ == "__main__":
+            application = MyApplication()
+            entry(application)
+
+    Args:
+        app (application.Application): The main application to run.
+        arg_list (Namespace|SimpleNamespace): Arguments to the command line.
+            This is usually None and is used for testing.
+            Pass this around instead of using sys.argv because
+            pytest makes it hard to set sys.argv.
+    """
+    configure_from_application(app)
+    parser, args_to_remove = execution_parser()
+    app.add_arguments(parser)
+    args = parser.parse_args(arg_list)
+    offset = 10 * (args.quiet_app - args.verbose_app)
+    logging.basicConfig(level=logging.INFO + offset)
+
+    def work():
+        app.initialize(args)
+        if args.grid_engine:
+            launch_jobs(app, args, arg_list, args_to_remove)
+        elif args.memory_limit:
+            multiprocess_jobs(app, args, arg_list, args_to_remove)
+        else:
+            run_jobs(app, args)
+
+    grid_child_guard(work, app)

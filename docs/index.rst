@@ -12,6 +12,7 @@ Welcome to gridengineapp's documentation!
 
    apptutorial
    tutorial
+   task_arrays
    requirements
    testing
 
