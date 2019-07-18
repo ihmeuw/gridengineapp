@@ -43,7 +43,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinxcontrib.napoleon",  # for easy line breaks
     "sphinx.ext.viewcode",
-    "sphinx.ext.githubpages",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
