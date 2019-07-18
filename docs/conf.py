@@ -78,7 +78,7 @@ autodoc_default_flags = []
 
 # Can't mock numpy because it causes a LooseVersion error.
 autodoc_mock_imports = [
-    "toml", "networkx",
+    "networkx",
 ]
 
 # This patch is here to turn off warnings about duplicate documentation.
