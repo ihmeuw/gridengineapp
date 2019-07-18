@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ihmeuw/gridengineapp.svg?branch=master)](https://travis-ci.org/ihmeuw/gridengineapp)
+[![Documentation Status](https://readthedocs.org/projects/cascade/badge/?version=latest)](https://gridengineapp.readthedocs.io/en/latest/?badge=latest)
 # gridengineapp
 
 An application framework for writing Python software that
