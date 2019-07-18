@@ -1,4 +1,3 @@
-
 class QsubTemplate:
     def __init__(self):
         self._template = dict()
@@ -296,7 +295,8 @@ class QsubTemplate:
     def hold_jid(self):
         """
         List[str]: define jobnet interdependencies
-        * job_identifier_list - {job_id|job_name|reg_exp}[,{job_id|job_name|reg_exp},...]
+        * job_identifier_list -
+          {job_id|job_name|reg_exp}[,{job_id|job_name|reg_exp},...]
         """
         return self._template.get("hold_jid", list())
 
@@ -309,7 +309,8 @@ class QsubTemplate:
     def hold_jid_ad(self):
         """
         List[str]: define jobnet array interdependencies
-        * job_identifier_list - {job_id|job_name|reg_exp}[,{job_id|job_name|reg_exp},...]
+        * job_identifier_list -
+          {job_id|job_name|reg_exp}[,{job_id|job_name|reg_exp},...]
         """
         return self._template.get("hold_jid_ad", list())
 
@@ -427,7 +428,8 @@ class QsubTemplate:
     @property
     def masterl(self):
         """
-        Dict[str,str]: request the given resources for the master task of a parallel job
+        Dict[str,str]: request the given resources for the master task
+            of a parallel job
         * resource_list - resource[=value][,resource[=value],...]
         """
         return self._template.get("masterl", dict())
@@ -898,7 +900,8 @@ class QsubTemplate:
     def xdv(self):
         """
         str: specify docker volume(s)
-        * docker_volumes - list of docker volumes (mount points) following docker run -v syntax
+        * docker_volumes - list of docker volumes (mount points)
+          following docker run -v syntax
         """
         return self._template.get("xdv", str())
 
@@ -936,7 +939,8 @@ class QsubTemplate:
     @property
     def xd_run_as_image_user(self):
         """
-        str: start autostart Docker job as the user defined in the Docker image
+        str: start autostart Docker job as the user defined in
+            the Docker image
         * y[es]|n[o]
         """
         return self._template.get("xd_run_as_image_user", str())

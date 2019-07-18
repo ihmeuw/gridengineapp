@@ -1,10 +1,12 @@
+from pathlib import Path
 import xml.etree.ElementTree as ET
 
 from gridengineapp.status import for_each_member, FlyWeightJob, job_states
 
 
 def test_for_each_member_happy():
-    tree = ET.parse('qstat_sample0.xml')
+    qstat_xml = Path(__file__).parent / "qstat_sample0.xml"
+    tree = ET.parse(str(qstat_xml))
     structure = for_each_member(tree.getroot().find("djob_info"))
     job = FlyWeightJob(structure[0])
     print(job.status)

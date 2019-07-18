@@ -119,14 +119,15 @@ class ShelfFile(FileEntity):
             None, on success, or a string on error.
         """
         path = self.path
-        suffixes = [".dat", ".db"]
+        suffixes = [".dat", ".db", ""]
         found = False
         for suffix in suffixes:
             search_name = path.parent / (path.name + suffix)
             if search_name.exists():
                 found = True
         if not found:
-            LOGGER.debug(f"Shelf path doesn't exist {path}")
+            nearby = list(path.parent.glob("*"))
+            LOGGER.debug(f"Shelf path doesn't exist {path} but {nearby} do")
             return f"Shelf path doesn't exist {path}"
         if self._keys:
             with shelve.open(str(path)) as db:
@@ -146,5 +147,5 @@ class ShelfFile(FileEntity):
     def remove(self):
         path = self.path
         base = path.parent
-        for dbm_file in base.glob(f"{path.name}.*"):
+        for dbm_file in base.glob(f"{path.name}*"):
             dbm_file.unlink()
