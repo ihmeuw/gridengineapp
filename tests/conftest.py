@@ -22,7 +22,8 @@ def fair(request):
 
 class FairDbFuncArg:
     """
-    Uses a pattern from https://pytest.readthedocs.io/en/2.0.3/example/attic.html
+    Uses a pattern from
+    https://pytest.readthedocs.io/en/2.0.3/example/attic.html
     """
     def __init__(self, request):
         if not request.config.getoption("fair"):

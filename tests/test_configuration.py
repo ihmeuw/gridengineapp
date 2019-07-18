@@ -1,8 +1,6 @@
 from configparser import ConfigParser
 from pathlib import Path
 
-from pkg_resources import resource_string
-
 from gridengineapp.config import shell_directory, configuration
 
 

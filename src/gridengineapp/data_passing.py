@@ -147,5 +147,5 @@ class ShelfFile(FileEntity):
     def remove(self):
         path = self.path
         base = path.parent
-        for dbm_file in base.glob(f"{path.name}.*"):
+        for dbm_file in base.glob(f"{path.name}*"):
             dbm_file.unlink()
