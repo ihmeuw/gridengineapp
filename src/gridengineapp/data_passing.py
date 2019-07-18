@@ -119,7 +119,7 @@ class ShelfFile(FileEntity):
             None, on success, or a string on error.
         """
         path = self.path
-        suffixes = [".dat", ".db"]
+        suffixes = [".dat", ".db", ""]
         found = False
         for suffix in suffixes:
             search_name = path.parent / (path.name + suffix)
