@@ -126,7 +126,8 @@ class ShelfFile(FileEntity):
             if search_name.exists():
                 found = True
         if not found:
-            LOGGER.debug(f"Shelf path doesn't exist {path}")
+            nearby = list(path.parent.glob("*"))
+            LOGGER.debug(f"Shelf path doesn't exist {path} but {nearby} do")
             return f"Shelf path doesn't exist {path}"
         if self._keys:
             with shelve.open(str(path)) as db:

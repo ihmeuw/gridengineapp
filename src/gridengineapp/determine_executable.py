@@ -44,7 +44,7 @@ def find_or_create_executable(application):
     module = getmodule(app_class)
     package_name = module.__package__
     class_name = app_class.__name__
-    installed = package_name is not ""
+    installed = package_name != ""
     module_name = module.__spec__.name
     app_has_main = module_has_main_guard(getsource(module))
 
