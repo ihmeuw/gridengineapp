@@ -4,9 +4,17 @@ from logging import getLogger
 from pathlib import Path
 from tempfile import gettempdir
 
-from pkg_resources import resource_string
+from pkg_resources import resource_string, iter_entry_points
 
 LOGGER = getLogger(__name__)
+
+
+def installed_config_parsers():
+    parsers = list()
+    for entry_point in iter_entry_points("ihmeuw.config", __package__):
+        LOGGER.debug(f"Found configuration in distribution {entry_point.dist}")
+        parsers.append(entry_point.load()())
+    return parsers
 
 
 def configuration(alternate_configparser=None):
@@ -27,12 +35,14 @@ def configuration(alternate_configparser=None):
         bytes_form = resource_string(__package__, "configuration.cfg")
         parser = ConfigParser()
         parser.read_string(bytes_form.decode())
-        if (alternate_configparser is not None and
-                alternate_configparser.has_section(__package__)):
-            parser.read_dict(alternate_configparser)
+        parsers = installed_config_parsers()
+        if alternate_configparser is not None:
+            parsers.append(alternate_configparser)
+        for ordered_load in parsers:
+            parser.read_dict(ordered_load)
         section = parser[__package__]
         configuration._config = section
-    return configuration._config
+    return getattr(configuration, "_config")
 
 
 def shell_directory():
