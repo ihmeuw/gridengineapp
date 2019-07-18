@@ -14,7 +14,12 @@ setup(
         # You might put these in tests_require if you are using
         # setup.py, but pip wants them here.
         "testing": ["pytest", "pytest-mock", "pandas", "tables"],
-        "documentation": ["sphinx", "sphinx_rtd_theme", "sphinx-autobuild", "sphinxcontrib-napoleon"],
+        "documentation": [
+            "sphinx",
+            "sphinx_rtd_theme",
+            "sphinx-autobuild",
+            "sphinxcontrib-napoleon",
+        ],
     },
     zip_safe=False,
 )
