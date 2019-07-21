@@ -1,15 +1,19 @@
+from gridengineapp.data_passing import FileEntity, PandasFile, ShelfFile
 from gridengineapp.delete import qdel
+from gridengineapp.exceptions import NodeMisconfigurationError
+from gridengineapp.graph_choice import execution_ordered
+from gridengineapp.identifier import IntegerIdentifier, StringIdentifier
+from gridengineapp.job import Job
+from gridengineapp.main import entry
 from gridengineapp.status import qstat, qstat_short, check_complete
 from gridengineapp.submit import qsub, qsub_template
+from gridengineapp.gridparser import GridParser, ArgumentError
 
-from gridengineapp.data_passing import FileEntity, PandasFile, ShelfFile
-from gridengineapp.job import Job
-from gridengineapp.identifier import IntegerIdentifier, StringIdentifier
-from gridengineapp.main import entry
-from gridengineapp.exceptions import NodeMisconfigurationError
 
 __all__ = [
     "qdel", "qstat", "qstat_short", "qsub", "qsub_template",
+    "GridParser",
+    "ArgumentError",
     "check_complete",
     "FileEntity",
     "PandasFile",
@@ -18,5 +22,6 @@ __all__ = [
     "IntegerIdentifier",
     "StringIdentifier",
     "entry",
+    "execution_ordered",
     "NodeMisconfigurationError",
 ]
