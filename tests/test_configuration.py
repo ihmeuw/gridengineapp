@@ -1,7 +1,9 @@
 from configparser import ConfigParser
 from pathlib import Path
 
-from gridengineapp.config import shell_directory, configuration
+from gridengineapp.config import (
+    shell_directory, configuration, installed_config_parsers
+)
 
 
 def test_shell_directory():
@@ -33,3 +35,10 @@ def test_use_outside_configuration():
     assert "project" in config
     # And later queries get the overwritten one.
     assert config["queues"] == "i.q"
+
+
+def test_find_installed():
+    installed = installed_config_parsers()
+    if len(installed) > 0:
+        for parameters in installed:
+            assert parameters.has_section("gridengineapp")
