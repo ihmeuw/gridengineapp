@@ -236,4 +236,4 @@ def entry(app, arg_list=None):
         else:
             run_jobs(app, args)
 
-    grid_child_guard(work, app)
+    return grid_child_guard(work, app)

@@ -4,7 +4,7 @@ import pytest
 
 import gridengineapp.submit
 from gridengineapp.config import configuration
-from gridengineapp.status import check_complete
+from gridengineapp import check_complete
 from gridengineapp.submit import template_to_args, qsub
 
 
