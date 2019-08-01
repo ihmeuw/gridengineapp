@@ -22,6 +22,7 @@ __all__ = [
     "PandasFile",
     "ShelfFile",
     "Job",
+    "check_complete",
     "IntegerIdentifier",
     "StringIdentifier",
     "entry",
