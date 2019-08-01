@@ -1,6 +1,7 @@
 import faulthandler
 import logging
 import sys
+import traceback
 from bdb import BdbQuit
 from enum import Enum
 from inspect import getmembers, ismethod
@@ -52,6 +53,7 @@ def run_jobs(app, args):
     try:
         job_graph = job_subset(app, args)
         for identifier in execution_ordered(job_graph):
+            LOGGER.info(f"Run {identifier}.")
             for task in iterate_tasks(app.job(identifier), args.task_id):
                 if not args.mock_job:
                     task.run()
@@ -199,8 +201,12 @@ def grid_child_guard(work, args):
             return GridEngineReturnCodes.RequestRestart.value
         else:
             return GridEngineReturnCodes.FailAndDeleteHoldingJobs.value
-    except Exception as exc:
-        LOGGER.exception(exc)
+    except Exception:
+        # Do some work to reduce the size of the error message to users.
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        tb_lines = traceback.format_tb(exc_traceback)
+        LOGGER.error(f"{exc_type.__name__} {exc_value} {tb_lines[-1]}")
+        LOGGER.exception(f"Exception in app")
         return GridEngineReturnCodes.FailAndDeleteHoldingJobs.value
     return GridEngineReturnCodes.OK.value
 
@@ -236,4 +242,4 @@ def entry(app, arg_list=None):
         else:
             run_jobs(app, args)
 
-    grid_child_guard(work, app)
+    return grid_child_guard(work, app)

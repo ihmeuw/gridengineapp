@@ -10,11 +10,13 @@ Welcome to gridengineapp's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   about
    apptutorial
    tutorial
    task_arrays
    requirements
    testing
+   reference
 
 
 Indices and tables

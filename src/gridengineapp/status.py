@@ -4,7 +4,6 @@ from functools import lru_cache
 from logging import getLogger
 from os import linesep, environ
 from textwrap import indent
-from time import time, sleep
 
 from .config import configuration
 from .process import run_check
@@ -80,7 +79,9 @@ class FlyWeightJob:
     """
     def __init__(self, job_jsonlike):
         """This is on top of the output of `for_each_member`."""
-        self._json = job_jsonlike
+
+        self.job_dict = job_jsonlike
+        """Dictionary containing all information from qstat."""
 
     @property
     def status(self):
@@ -93,22 +94,22 @@ class FlyWeightJob:
         elif self.task_cnt > 1:
             raise ValueError(f"This job has {self.task_cnt} tasks")
         else:
-            return FlyWeightTask(self._json["JB_ja_tasks"][0]).status
+            return FlyWeightTask(self.job_dict["JB_ja_tasks"][0]).status
 
     @property
     def tasks(self):
         """FlyWeightTasks for tasks in the job. Can be none."""
-        return [FlyWeightTask(t) for t in self._json["JB_ja_tasks"]]
+        return [FlyWeightTask(t) for t in self.job_dict["JB_ja_tasks"]]
 
     @property
     def name(self):
         """As given by the ``-N`` qsub option."""
-        return self._json["JB_job_name"]
+        return self.job_dict["JB_job_name"]
 
     @property
     def job_id(self):
         """The job ID, as in 2349272."""
-        return self._json["JB_job_number"]
+        return self.job_dict["JB_job_number"]
 
     @property
     def task_cnt(self):
@@ -116,26 +117,32 @@ class FlyWeightJob:
         Jobs contain tasks, and it's the tasks that run, have statuses,
         and have CPU times.
         """
-        if "JB_ja_tasks" in self._json:
-            return len(self._json["JB_ja_tasks"])
+        if "JB_ja_tasks" in self.job_dict:
+            return len(self.job_dict["JB_ja_tasks"])
         else:
             return 0
 
 
 class FlyWeightTask:
+    """Responsible for presenting task-specific information from qstat.
+    Every job contains at least one task. Task arrays have one or more
+    tasks.
+    """
     def __init__(self, task_jsonlike):
         """Pass into this each ``JB_ja_tasks`` member of the job."""
-        self._task = task_jsonlike
+
+        self.task_dict = task_jsonlike
+        """Dictionary containing all information from qstat."""
 
     @property
     def number(self):
         """Tasks within a job are numbered from 1."""
-        return self._task["JAT_task_number"]
+        return self.task_dict["JAT_task_number"]
 
     @property
     def status(self):
         """Status is a set of strings."""
-        raw_state = int(self._task["JAT_status"])
+        raw_state = int(self.task_dict["JAT_status"])
         state = set()
         state_categories = job_states()
         for state_name, mask in state_categories.items():
@@ -148,12 +155,12 @@ class FlyWeightTask:
     @property
     def restarted(self):
         """Bool: Whether this task did restart."""
-        return self._task["JAT_job_restarted"] != "0"
+        return self.task_dict["JAT_job_restarted"] != "0"
 
     @property
     def hostname(self):
         """Hostname where this task will run, is running, or has run."""
-        places = self._task["JAT_granted_destin_identifier_list"]
+        places = self.task_dict["JAT_granted_destin_identifier_list"]
         if len(places) > 0:
             return places[0]["JG_qhostname"]
         else:
@@ -219,7 +226,9 @@ class MiteWeightJob:
     """
     def __init__(self, job_jsonlike):
         """This is on top of the output of `for_each_member`."""
-        self._json = job_jsonlike
+
+        self.job_dict = job_jsonlike
+        """Dictionary with all information from qstat."""
 
     @property
     def status(self):
@@ -228,7 +237,7 @@ class MiteWeightJob:
         ``{"queued", "waiting"}``, which we know as qw.
         """
         state = set()
-        for letter in self._json["state"]:
+        for letter in self.job_dict["state"]:
             if letter in LETTER_CODE_TO_STATE:
                 state.add(LETTER_CODE_TO_STATE[letter])
         if not state:
@@ -243,28 +252,28 @@ class MiteWeightJob:
     @property
     def name(self):
         """As given by the ``-N`` qsub option."""
-        return self._json["JB_name"]
+        return self.job_dict["JB_name"]
 
     @property
     def owner(self):
-        return self._json["JB_owner"]
+        return self.job_dict["JB_owner"]
 
     @property
     def priority(self):
-        return float(self._json["JAT_prio"])
+        return float(self.job_dict["JAT_prio"])
 
     @property
     def start_time(self):
-        if "JAT_start_time" in self._json:
-            time_string = self._json["JAT_start_time"]
+        if "JAT_start_time" in self.job_dict:
+            time_string = self.job_dict["JAT_start_time"]
             return datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%f")
         else:
             return None
 
     @property
     def submission_time(self):
-        if "JB_submission_time" in self._json:
-            time_string = self._json["JB_submission_time"]
+        if "JB_submission_time" in self.job_dict:
+            time_string = self.job_dict["JB_submission_time"]
             return datetime.strptime(time_string, "%Y-%m-%dT%H:%M:%S.%f")
         else:
             return None
@@ -272,7 +281,7 @@ class MiteWeightJob:
     @property
     def job_id(self):
         """The job ID, as in 2349272."""
-        return self._json["JB_job_number"]
+        return self.job_dict["JB_job_number"]
 
     @property
     def task_cnt(self):
@@ -290,6 +299,14 @@ def qstat_short(effective_user=None):
     """
     Calling qstat without -j gets a much smaller result that just has
     job information.
+
+    Args:
+        effective_user (str): Request qstat for this user's jobs.
+            Default is to use the current user.
+
+    Returns:
+        List[MiteWeightJob]: A list of jobs with less information than
+        what ``qstat -j`` shows.
     """
     xml = qstat_request(effective_user)
     if xml is None:
@@ -301,59 +318,3 @@ def qstat_short(effective_user=None):
         if sub_root:
             job_list.extend(for_each_member(sub_root))
     return [MiteWeightJob(jd) for jd in job_list]
-
-
-STATECHART = dict(
-    initial=dict(timeout=60),
-    engine=dict(timeout=600),
-    done=dict(timeout=0),
-)
-"""
-Only care about three states, the initial submission,
-whether qstat has said it sees the file,
-and done, whether that's out of qstat or that the
-file exists.
-"""
-
-
-def check_complete(identify_job, check_done, timeout=60 * 60):
-    """
-    Submit a job and check that it ran.
-    If the job never shows up in the queue, and
-    it didn't run, that's a failure. If it shows up in
-    the queue and goes over the timeout, we abandon it,
-    because these are tests.
-
-    Args:
-        identify_job (function): True if it's this job.
-        check_done (function): True if job is done.
-        timeout (float): How many seconds to wait until
-            calling the job lost.
-
-    Returns:
-        None
-    """
-    state = "initial"
-    last = time()
-    dead_to_me = {"deleted", "suspended"}
-    state_chart = STATECHART.copy()
-    state_chart["engine"]["timeout"] = timeout
-    while state != "done" and not check_done():
-        my_jobs = qstat_short()
-        this_job = [j for j in my_jobs if identify_job(j)]
-        if len(this_job) > 0:
-            LOGGER.debug(f"Found jobs {[j.name for j in this_job]}")
-            if state == "initial":
-                last = time()
-                state = "engine"
-            for check_job in this_job:
-                assert not (check_job.status & dead_to_me)
-        elif len(this_job) == 0 and state == "engine":
-            LOGGER.debug(f"The job isn't in qstat.")
-            return
-        else:
-            LOGGER.debug(f"No jobs showed up after {time() - last}s")
-        state_timeout = state_chart[state]["timeout"]
-        if time() - last > state_timeout:
-            raise TimeoutError(f"Job exceded {state_timeout}.", state)
-        sleep(15)

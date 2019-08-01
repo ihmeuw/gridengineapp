@@ -1,7 +1,7 @@
 .. _tutorial:
 
-Tutorial
---------
+Qsub Tutorial
+-------------
 
 Grid Engine is an abstraction of the Unix process. It makes
 a Unix process on a remote machine look like a Unix process

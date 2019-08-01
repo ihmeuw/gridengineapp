@@ -110,7 +110,10 @@ def qsub_template():
 
 def qsub(template, command):
     """
-    Runs a qsub command with a template.
+    Runs a qsub command with a template. By using the template, as described
+    below, this function makes it easier to create a default set of
+    qsub settings and overwrite them, job by job, without doing
+    string manipulation.
 
     We can either try to put a super-thoughtful interface on qsub, or we
     let the user manage its arguments. This focuses on making it a little
@@ -125,6 +128,24 @@ def qsub(template, command):
         Can you add 37 to it? No. Is it ordered? That's not guaranteed.
         Does it sometimes have a ".1" at the end? Yes.
         That makes it a string.
+
+    The template argument is a dictionary where each entry corresponds
+    to an argument to ``qsub``. Here are the rules:
+
+     * If the argument is a flag with no argument, set
+       ``template[flag] = None``.
+
+     * If the argument is a flag with a true or false, set
+       ``template[flag] = True``, or ``False``.
+
+     * If the argument is a comma-separated list, set the
+       value to a list,
+       ``template["dc"] = ["LD_LIBRARY_PATH", "CC"]``.
+
+     * If the argument is a set of key-value pairs, set the value
+       to a dictionary,
+       ``template["l"] = dict(m_mem_free="16G", fthreads=16)``.
+
     """
     str_command = [str(x) for x in command]
     if isinstance(template, QsubTemplate):
