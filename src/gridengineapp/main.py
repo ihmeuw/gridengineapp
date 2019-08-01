@@ -206,6 +206,7 @@ def grid_child_guard(work, args):
         exc_type, exc_value, exc_traceback = sys.exc_info()
         tb_lines = traceback.format_tb(exc_traceback)
         LOGGER.error(f"{exc_type.__name__} {exc_value} {tb_lines[-1]}")
+        LOGGER.exception(f"Exception in app")
         return GridEngineReturnCodes.FailAndDeleteHoldingJobs.value
     return GridEngineReturnCodes.OK.value
 
