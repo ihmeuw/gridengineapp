@@ -3,6 +3,20 @@
 Testing Plan
 ============
 
+Running Tests
+-------------
+
+Install the ``cascade_config`` repository from the local versioning system
+before running tests, so that it knows local directories::
+
+    cd tests
+    pytest --fair
+
+This will run tests using up to 4GB of memory and including job
+submission to the cluster queues. When testing on a laptop or
+on Github, exclude the ``--fair`` flag.
+
+
 Systems Under Test
 ------------------
 
