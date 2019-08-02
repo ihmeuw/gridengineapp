@@ -26,3 +26,4 @@ stash:
 	pandoc requirements.rst -o requirements.md
 	pandoc testing.rst -o testing.md
 	pandoc tutorial.rst -o tutorial.md
+	pandoc task_arrays.rst -o task_arrays.md
