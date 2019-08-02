@@ -21,3 +21,8 @@ help:
 
 stash:
 	pandoc apptutorial.rst -o apptutorial.md
+	pandoc about.rst -o about.md
+	pandoc reference.rst -o reference.md
+	pandoc requirements.rst -o requirements.md
+	pandoc testing.rst -o testing.md
+	pandoc tutorial.rst -o tutorial.md
