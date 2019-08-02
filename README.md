@@ -11,8 +11,3 @@ runs under Grid Engine.
  * Tools to check status of a run.
  * Resilient to single-job failures and can restart
    multi-job failures.
-
-Documentation
-
- * [Tutorial](docs/apptutorial.md)
- 
