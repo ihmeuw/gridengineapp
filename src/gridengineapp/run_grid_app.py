@@ -6,8 +6,7 @@ from .config import configuration
 from .determine_executable import executable_for_job
 from .graph_choice import job_subset, execution_ordered
 from .qsub_template import QsubTemplate
-from .submit import max_run_minutes_on_queue
-from .submit import qsub
+from .submit import max_run_minutes_on_queue, qsub
 
 LOGGER = logging.getLogger(__name__)
 
@@ -117,17 +116,22 @@ def launch_jobs(app, args, arg_list, args_to_remove):
     job_name = app_name + args.run_id
 
     grid_id = dict()
-    for job_id in execution_ordered(job_graph):
+    for app_job_id in execution_ordered(job_graph):
         job_args = run_job_under_no_profile(
-            app, arg_list, args_to_remove, job_id)
+            app, arg_list, args_to_remove, app_job_id)
         holds = list()
-        for source, _sink, data in job_graph.in_edges(job_id, data=True):
+        for source, _sink, data in job_graph.in_edges(app_job_id, data=True):
             if not ("launch" in data and data["launch"]):
-                holds.append(grid_id[source])
+                # Qsub's grid_engine_id can be 10851099.1-30:1 for tasks.
+                grid_job_id = grid_id[source].split(".")[0]
+                holds.append(grid_job_id)
         template = configure_qsub(
-            job_name, job_id, app.job(job_id), holds, args
+            job_name, app_job_id, app.job(app_job_id), holds, args
         )
         grid_job_id = qsub(template, job_args)
-        grid_id[job_id] = grid_job_id
-    LOGGER.debug(f"Launched {', '.join(grid_id.values())}")
+        grid_id[app_job_id] = grid_job_id
+    if len(grid_id) < 20:
+        LOGGER.debug(f"Launched {', '.join(grid_id.values())}")
+    else:
+        LOGGER.debug(f"Launched {len(grid_id)} jobs.")
     return grid_id
