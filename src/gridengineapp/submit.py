@@ -152,4 +152,5 @@ def qsub(template, command):
         template = template._template
     formatted_args = template_to_args(template)
     args = ["-terse"] + formatted_args + str_command
+    LOGGER.debug(f"qsub {args}")
     return run_check("qsub", args)
